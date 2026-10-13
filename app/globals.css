@@ -1,0 +1,584 @@
+/*!
+  Modern Premium Design System for Progressive Auto Sports
+  Tailwind CSS v4 | Built with care
+*/
+
+@import 'tailwindcss';
+
+/* ────────────────────────────────────────────
+   Tailwind Theme Mapping
+   Exposes design tokens as utility classes
+   (bg-card, border-line, text-content-muted…)
+   ──────────────────────────────────────────── */
+
+@theme inline {
+  --color-primary: hsl(var(--color-primary));
+  --color-primary-hover: hsl(var(--color-primary-hover));
+  --color-primary-active: hsl(var(--color-primary-active));
+  /* Accessible gold for text/icons on light backgrounds (amber-700). */
+  --color-primary-strong: hsl(var(--color-primary-strong));
+  --color-primary-foreground: hsl(var(--color-primary-foreground));
+  --color-card: hsl(var(--color-card));
+  --color-surface: hsl(var(--color-surface));
+  --color-surface-strong: hsl(var(--color-surface-strong));
+  --color-content: hsl(var(--color-content));
+  --color-content-muted: hsl(var(--color-content-muted));
+  --color-content-faint: hsl(var(--color-content-faint));
+  --color-line: hsl(var(--color-line));
+  --color-line-hover: hsl(var(--color-line-hover));
+  --color-divider: hsl(var(--color-divider));
+  --color-success: hsl(var(--color-success));
+  --color-success-hover: hsl(var(--color-success-hover));
+  --color-success-foreground: hsl(var(--color-success-foreground));
+  --color-warning: hsl(var(--color-warning));
+  --color-error: hsl(var(--color-error));
+  --color-info: hsl(var(--color-info));
+  --color-whatsapp: hsl(var(--color-whatsapp));
+  --color-whatsapp-foreground: hsl(var(--color-whatsapp-foreground));
+  /* Dark ink surfaces — raw hex tokens (no hsl() wrapper). */
+  --color-ink-950: #050608;
+  --color-ink-900: #080a0d;
+  --color-ink-800: #101318;
+  --color-ink-700: #161b22;
+
+  --radius-token-sm: var(--radius-sm);
+  --radius-token-md: var(--radius-md);
+  --radius-token-lg: var(--radius-lg);
+  --radius-token-xl: var(--radius-xl);
+  --radius-token-2xl: var(--radius-2xl);
+  --radius-token-3xl: var(--radius-3xl);
+  --radius-token-full: var(--radius-full);
+}
+
+/* ────────────────────────────────────────────
+   Design Token System — Light Theme
+   Semantic tokens only: components must never
+   hardcode brand hex values. Contrast targets
+   are WCAG 2.2 AA for text and 3:1 for UI.
+   ──────────────────────────────────────────── */
+
+:root {
+  color-scheme: light;
+
+  /* ── Primary: Premium Gold #FFC700 ── */
+  --color-primary: 47 100% 50%;               /* #FFC700 brand gold */
+  --color-primary-hover: 44 100% 56%;         /* brighter hover */
+  --color-primary-active: 40 100% 45%;        /* pressed */
+  --color-primary-foreground: 48 60% 6%;      /* warm near-black ink on gold */
+  /* Accessible gold for text, icons and links on light backgrounds.
+     Gold on ivory is NOT AA-safe for text (≈1.9:1) — use amber-700. */
+  --color-primary-strong: 32 95% 29%;         /* #904F04 ≈6:1 on ivory, ≈5.5:1 on gold tint */
+
+  /* ── Secondary: Deep Teal Accent ── */
+  --color-secondary: 180 40% 12%;
+  --color-secondary-hover: 180 40% 10%;
+  --color-secondary-foreground: 0 0% 100%;
+
+  /* ── Accent: Electric Blue (informational) ── */
+  --color-accent: 217 91% 60%;
+  --color-accent-hover: 217 91% 52%;
+  --color-accent-hi: 217 91% 65%;
+  --color-accent-foreground: 0 0% 100%;
+
+  /* ── Status (AA-safe as text on white/ivory) ── */
+  --color-success: 152 60% 30%;
+  --color-success-hover: 152 60% 26%;
+  --color-success-light: 152 60% 36%;
+  --color-success-foreground: 0 0% 100%;
+  --color-warning: 32 90% 35%;
+  --color-warning-foreground: 0 0% 100%;
+  --color-error: 0 72% 44%;
+  --color-error-foreground: 0 0% 100%;
+  --color-info: 217 91% 44%;
+  --color-info-foreground: 0 0% 100%;
+
+  /* ── Communication brand accents ── */
+  --color-whatsapp: 142 71% 45%;              /* #1FB84F family */
+  --color-whatsapp-hover: 142 71% 39%;
+  --color-whatsapp-foreground: 150 80% 12%;   /* dark ink on WhatsApp green */
+  --color-telegram: 205 100% 36%;
+  --color-telegram-foreground: 0 0% 100%;
+
+  /* ── Surface / Background ── */
+  --color-bg: 45 33% 97%;                    /* #FAF9F6 warm ivory */
+  --color-surface: 0 0% 100%;                /* #FFFFFF white */
+  --color-surface-strong: 120 20% 96%;       /* #F2F5F3 subtle green-tinted */
+
+  /* ── Card ── */
+  --color-card: 0 0% 100%;                   /* #FFFFFF */
+  --color-card-hover: 45 20% 97%;            /* subtle warm hover */
+
+  /* ── Text — deep charcoal (prompt brand direction) ── */
+  --color-content: 240 5% 11%;               /* #1B1B1F charcoal */
+  --color-content-muted: 240 4% 36%;         /* AA on white (≈7:1) */
+  --color-content-faint: 240 4% 45%;         /* AA on white (≈5:1) */
+
+  /* ── Border / Dividers ── */
+  --color-line: 220 14% 88%;
+  --color-line-hover: 220 12% 76%;
+  --color-divider: 220 14% 91%;
+
+  /* ── Focus ring — must stay ≥3:1 on ivory/white (WCAG 2.4.11/2.4.13).
+       Gold on ivory is only ≈1.5:1, so the ring is charcoal. ── */
+  --color-focus: 240 6% 14%;
+  --color-focus-width: 2px;
+
+  /* ── Dark ink surfaces (hex, used via bg-ink-* utilities) ── */
+  --color-ink-950: #050608;
+  --color-ink-900: #080a0d;
+  --color-ink-800: #101318;
+  --color-ink-700: #161b22;
+
+  /* ── Blur / Glass ── */
+  --blur-glass: 12px;
+
+  /* ── Border Radius ── */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-full: 9999px;
+
+  /* ── Typography — Geist is loaded by next/font in app/layout.tsx
+       and exposed as --font-geist-sans. System fallbacks keep the
+       page usable if the font file ever fails to load. ── */
+  --font-sans: var(--font-geist-sans, "Geist"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+
+  /* ── Shadow Palette ── */
+  --shadow-subtle: 0 1px 3px 0 hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.08);
+  --shadow-elevated: 0 4px 24px 0 hsl(0 0% 0% / 0.08);
+  --shadow-elevated-hover: 0 12px 40px 0 hsl(0 0% 0% / 0.12);
+  --shadow-inner: inset 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+  --shadow-glass: 0 8px 32px 0 hsl(0 0% 0% / 0.08);
+  --shadow-primary: 0 8px 28px 0 hsl(47 100% 50% / 0.25);
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms cubic-bezier(0.25, 0.4, 0.25, 1);
+}
+
+/* ────────────────────────────────────────────
+   Base Layer
+   ──────────────────────────────────────────── */
+
+@layer base {
+  *, *::before, *::after {
+    border-color: hsl(var(--color-line));
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    background-color: hsl(var(--color-bg));
+    color: hsl(var(--color-content));
+  }
+
+  body {
+    margin: 0;
+    background-color: hsl(var(--color-bg));
+    color: hsl(var(--color-content));
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: var(--tracking-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  /* ── Typography reset ── */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
+    line-height: 1.1;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  ul, ol {
+    margin: 0;
+    padding: 0;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    max-width: 100%;
+    display: block;
+  }
+}
+
+/* ────────────────────────────────────────────
+   Components Layer
+   ──────────────────────────────────────────── */
+
+@layer components {
+  /* ── Container ── */
+  .container {
+    width: 100%;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+  @media (min-width: 640px) { .container { max-width: 42rem; padding-right: 1.25rem; padding-left: 1.25rem; } }
+  @media (min-width: 768px) { .container { max-width: 52rem; padding-right: 1.5rem; padding-left: 1.5rem; } }
+  @media (min-width: 1024px) { .container { max-width: 72rem; padding-right: 2rem; padding-left: 2rem; } }
+  @media (min-width: 1280px) { .container { max-width: 84rem; padding-right: 2.5rem; padding-left: 2.5rem; } }
+  @media (min-width: 1440px) { .container { max-width: 90rem; padding-right: 3rem; padding-left: 3rem; } }
+  @media (min-width: 1540px) { .container { max-width: 96rem; padding-right: 3rem; padding-left: 3rem; } }
+
+  /* ── Premium Button ── */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-250 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-bg))];
+    letter-spacing: var(--tracking-tight);
+    min-height: 2.75rem; /* 44px — WCAG 2.5.8 target size */
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    @apply cursor-not-allowed opacity-55 shadow-none;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 text-[hsl(var(--color-primary-foreground))] shadow-lg shadow-[hsl(var(--color-primary)/0.2)];
+  }
+  .btn-primary:hover {
+    @apply from-yellow-400 to-amber-500 text-black shadow-xl shadow-[hsl(var(--color-primary)/0.3)];
+  }
+  .btn-primary:active {
+    @apply scale-[0.98];
+  }
+
+  .btn-success {
+    @apply bg-[hsl(var(--color-success))] text-[hsl(var(--color-success-foreground))] shadow-lg shadow-[hsl(var(--color-success)/0.2)];
+  }
+  .btn-success:hover {
+    @apply bg-[hsl(var(--color-success-hover))] shadow-xl;
+  }
+  .btn-success:active {
+    @apply scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply bg-[hsl(var(--color-surface-strong))] border border-[hsl(var(--color-line))] text-[hsl(var(--color-content))];
+  }
+  .btn-secondary:hover {
+    @apply bg-[hsl(var(--color-line))] border-[hsl(var(--color-line-hover))];
+  }
+
+  .btn-outline {
+    @apply border-2 border-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-strong))];
+  }
+  .btn-outline:hover {
+    @apply bg-[hsl(var(--color-primary)/0.1)];
+  }
+
+  .btn-ghost {
+    @apply text-[hsl(var(--color-content-muted))];
+  }
+  .btn-ghost:hover {
+    @apply text-[hsl(var(--color-content))] bg-[hsl(var(--color-line))];
+  }
+
+  /* ── Small variant ── */
+  .btn-sm {
+    min-height: 2.25rem; /* 36px */
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+    @apply text-sm;
+  }
+
+  /* ── Card ── */
+  .card {
+    @apply rounded-2xl bg-[hsl(var(--color-card))] border border-[hsl(var(--color-line))] shadow-[var(--shadow-subtle)] transition-all duration-250 ease-in-out text-[hsl(var(--color-content))];
+  }
+  .card:hover {
+    @apply shadow-[var(--shadow-elevated-hover)] border-[hsl(var(--color-line-hover))];
+  }
+
+  .card-glass {
+    @apply rounded-2xl bg-[hsl(var(--color-surface)/0.8)] border border-[hsl(var(--color-line))] backdrop-blur-md shadow-[var(--shadow-glass)] text-[hsl(var(--color-content))];
+  }
+
+  /* ── Filter chips ── */
+  .chip {
+    @apply inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] px-3.5 py-1.5 text-xs font-semibold text-[hsl(var(--color-content-muted))] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-bg))];
+  }
+  .chip:hover {
+    @apply border-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-strong))] shadow-[var(--shadow-subtle)];
+  }
+  .chip[aria-current="page"],
+  .chip[aria-current="true"],
+  .chip[data-active="true"] {
+    @apply border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))] shadow-sm;
+  }
+
+  /* ── Status badges ── */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+  }
+  .badge-gold {
+    @apply bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))];
+  }
+  .badge-gold-soft {
+    @apply bg-[hsl(var(--color-primary)/0.15)] text-[hsl(var(--color-primary-strong))];
+  }
+  .badge-success {
+    @apply bg-[hsl(var(--color-success))] text-[hsl(var(--color-success-foreground))];
+  }
+  .badge-neutral {
+    @apply bg-[hsl(var(--color-surface-strong))] text-[hsl(var(--color-content-muted))];
+  }
+
+  /* ── Input Fields ── */
+  .input-field {
+    @apply w-full rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-4 py-3 text-[hsl(var(--color-content))] placeholder-[hsl(var(--color-content-faint))] transition-all duration-250 ease-in-out;
+  }
+  .input-field:focus {
+    @apply outline-none border-[hsl(var(--color-primary))] ring-4 ring-[hsl(var(--color-focus)/0.12)];
+  }
+  .input-field[aria-invalid="true"] {
+    @apply border-[hsl(var(--color-error))] ring-[hsl(var(--color-error)/0.12)];
+  }
+
+  /* ── Section Headings ── */
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold;
+    color: hsl(var(--color-content));
+    letter-spacing: var(--tracking-tight);
+  }
+  .section-subtitle {
+    @apply mt-3 max-w-2xl;
+    color: hsl(var(--color-content-muted));
+  }
+
+  /* ── Eyebrow label used above section titles ── */
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--color-primary-strong))];
+  }
+
+  /* ── Form help + error text ── */
+  .form-hint {
+    @apply mt-1.5 text-xs text-[hsl(var(--color-content-muted))];
+  }
+  .form-error {
+    @apply mt-1.5 flex items-center gap-1 text-xs font-medium text-[hsl(var(--color-error))];
+  }
+
+  /* ── Text gradient utility (decorative; not for critical text) ── */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[hsl(var(--color-primary-strong))] to-amber-500;
+  }
+
+  /* ── Rating stars — amber-700 keeps ≥3:1 non-text contrast on ivory ── */
+  .rating-star {
+    @apply text-[hsl(var(--color-primary-strong))];
+  }
+
+  /* ── Stat Numbers ── */
+  .stat-number {
+    @apply text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight;
+    color: hsl(var(--color-content));
+  }
+  .stat-label {
+    @apply mt-2 text-sm;
+    color: hsl(var(--color-content-muted));
+  }
+
+  /* ── Loading skeleton ── */
+  .skeleton {
+    @apply rounded-lg;
+    background: linear-gradient(90deg, hsl(220 14% 92%) 25%, hsl(220 14% 96%) 50%, hsl(220 14% 92%) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+/* ────────────────────────────────────────────
+   Motion, Glass System & Utilities
+   ──────────────────────────────────────────── */
+
+@layer components {
+  /* ── Gradient text support ── */
+  .bg-clip-text {
+    background-clip: text;
+  }
+
+  /* ── Custom animations ── */
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .animate-fade-in { animation: fade-in 0.5s ease-out; }
+  .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
+  .animate-shimmer { background: linear-gradient(90deg, #e8ebe7 25%, #f0f3f1 50%, #e8ebe7 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+
+  /* ── Light Glass System ── */
+  .bg-glass-scene {
+    background-color: hsl(var(--color-bg));
+    background-image:
+      radial-gradient(900px 480px at 12% -4%, hsl(var(--color-primary)/0.06), transparent 58%),
+      radial-gradient(820px 500px at 94% 10%, hsl(var(--color-accent)/0.04), transparent 55%),
+      radial-gradient(760px 520px at 55% 118%, hsl(var(--color-success)/0.04), transparent 60%),
+      linear-gradient(180deg, hsl(var(--color-surface)) 0%, hsl(var(--color-bg)) 45%, hsl(var(--color-surface-strong)) 100%);
+    background-attachment: fixed;
+  }
+
+  .glass-subtle {
+    background: hsl(var(--color-surface)/0.6);
+    border: 1px solid hsl(var(--color-line));
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    backdrop-filter: blur(10px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.3),
+      0 8px 30px hsl(0 0% 0% / 0.06);
+  }
+
+  .glass {
+    background: hsl(var(--color-surface)/0.8);
+    border: 1px solid hsl(var(--color-line));
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      0 10px 36px hsl(0 0% 0% / 0.08);
+  }
+
+  .glass-strong {
+    background: hsl(var(--color-surface)/0.95);
+    border: 1px solid hsl(var(--color-line));
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.5),
+      0 14px 44px hsl(0 0% 0% / 0.08);
+  }
+
+  .glass-nav {
+    background: hsl(var(--color-surface)/0.85);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(18px) saturate(150%);
+    border-bottom: 1px solid hsl(var(--color-line));
+    box-shadow: 0 4px 24px hsl(0 0% 0% / 0.06);
+  }
+
+  /* ── Anchor targets clear the sticky header ── */
+  :target,
+  section[id] {
+    scroll-margin-top: 6rem;
+  }
+
+  /* ── Base ── */
+  html {
+    background-color: hsl(var(--color-bg));
+  }
+  body {
+    background-color: hsl(var(--color-bg));
+    color: hsl(var(--color-content));
+  }
+
+  /* ── Staggered entrance animation ── */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(22px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-rise { animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .rise-delay-1 { animation-delay: 0.05s; }
+  .rise-delay-2 { animation-delay: 0.12s; }
+  .rise-delay-3 { animation-delay: 0.19s; }
+  .rise-delay-4 { animation-delay: 0.26s; }
+  .rise-delay-5 { animation-delay: 0.33s; }
+  .rise-delay-6 { animation-delay: 0.4s; }
+  .animate-pulse-slow { animation: pulse-slow 2s ease-in-out infinite; }
+
+  /* ── Scroll-triggered reveal (CSS scroll-driven animations).
+       Zero JavaScript, and the content is ALWAYS present in the DOM:
+       where animation-timeline is unsupported the same `rise` keyframes
+       simply run once on page load, so nothing depends on JS executing. ── */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .reveal-on-scroll {
+        animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 22%;
+      }
+      /* Keep the full-page scene out of the animated layer: the fixed
+         background otherwise forces a repaint on every scroll frame. */
+      .bg-glass-scene.reveal-on-scroll {
+        animation: none;
+        animation-timeline: auto;
+      }
+    }
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background-color: hsl(var(--color-line)); border-radius: var(--radius-full); }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* ── Focus visible — charcoal ring stays ≥3:1 on ivory (WCAG 2.4.11/2.4.13).
+       Gold (#FFC700) on ivory is only ≈1.5:1 and must not be the focus ring. ── */
+  *:focus-visible {
+    outline: var(--color-focus-width) solid hsl(var(--color-focus));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* ── Selection ── */
+  ::selection {
+    background: hsl(var(--color-primary) / 0.28);
+    color: hsl(var(--color-content));
+  }
+}

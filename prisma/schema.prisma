@@ -1,0 +1,886 @@
+// Prisma schema - autoconnect (Progressive AutoHub)
+//
+// SINGLE SOURCE OF TRUTH: the model definitions below are mirrored from
+// progressive-autohub-backend/prisma/schema.prisma, which owns the database
+// migrations. The frontend and backend share one PostgreSQL instance, so the
+// two schemas must never drift.
+//
+// Generator settings stay local: this app uses the pg driver adapter
+// (@prisma/adapter-pg) and generates into app/generated/prisma.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+enum Role {
+  ADMIN
+  DEALER
+  DEALER_EMPLOYEE
+  CUSTOMER
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  INACTIVE
+}
+
+/// Listing visibility. DRAFT listings stay hidden from the public catalogue and
+/// only appear in the admin/dealer portals; PUBLISHED ones are public.
+/// Never conflate with `status`, which is the operational lifecycle.
+enum ListingStatus {
+  DRAFT
+  PUBLISHED
+}
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+enum FinanceApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  DOCUMENTS_REQUIRED
+  APPROVED
+  REJECTED
+  DISBURSED
+}
+enum InsuranceStatus {
+  QUOTE
+  APPLICATION_SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  ACTIVE
+  EXPIRED
+  REJECTED
+  CANCELLED
+}
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+enum OrderItemType {
+  VEHICLE
+  ACCESSORY
+  SERVICE
+  INSURANCE
+}
+enum NotificationType {
+  MESSAGE
+  LISTING_APPROVED
+  LISTING_REJECTED
+  NEW_LEAD
+  PRICE_CHANGE
+  FINANCE_UPDATE
+  TEST_DRIVE_REMINDER
+  SERVICE_REMINDER
+  INSURANCE_REMINDER
+  OFFER_RECEIVED
+  VEHICLE_STATUS_UPDATE
+  GENERAL
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  firstName String
+  lastName String
+  email String @unique
+  phone String? @unique
+  password String
+  role Role
+  isActive Boolean @default(true)
+  profileImage String?
+  city String?
+  state String?
+  refreshToken String?
+  fcmToken String?
+  smsEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  dealer Dealer?
+  dealerEmployee DealerEmployee?
+  bookings Booking[] @relation("CustomerBookings")
+  reviews Review[]
+  wishlist Wishlist[]
+  financeApplications FinanceApplication[]
+  insurancePolicies InsurancePolicy[]
+  orders Order[]
+  notifications Notification[]
+  warrantyPurchases WarrantyPurchase[]
+  returnRequests ReturnRequest[]
+  testDrives TestDrive[]
+}
+
+model Permission {
+  id Int @id @default(autoincrement())
+  name String @unique
+  description String?
+  module String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rolePermissions RolePermission[]
+  @@index([module])
+}
+
+model RolePermission {
+  id Int @id @default(autoincrement())
+  role Role
+  permissionId Int
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([role, permissionId])
+  @@index([role])
+  @@index([permissionId])
+}
+
+model Dealer {
+  id Int @id @default(autoincrement())
+  userId Int? @unique
+  businessName String
+  phone String
+  address String
+  city String
+  state String
+  pincode String
+  description String?
+  logo String?
+  isVerified Boolean @default(false)
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicles Vehicle[]
+  bookings Booking[] @relation("DealerBookings")
+  employees DealerEmployee[]
+  @@index([userId])
+  @@index([city])
+}
+
+model DealerEmployee {
+  id Int @id @default(autoincrement())
+  userId Int @unique
+  dealerId Int
+  position String?
+  hireDate DateTime @default(now())
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealer Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([dealerId])
+  @@index([isActive])
+}
+
+model Brand {
+  id Int @id @default(autoincrement())
+  name String @unique
+  logo String?
+  country String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicles Vehicle[]
+}
+
+model Category {
+  id Int @id @default(autoincrement())
+  name String @unique
+  slug String @unique
+  icon String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicles Vehicle[]
+}
+
+model Vehicle {
+  id Int @id @default(autoincrement())
+  title String
+  description String?
+  price Float
+  emi Float?
+  year Int
+  mileage Int @default(0)
+  fuel String
+  transmission String
+  bodyType String?
+  color String
+  engine String?
+  images String[] @default([])
+  status VehicleStatus @default(AVAILABLE)
+  listingStatus ListingStatus @default(PUBLISHED)
+  city String
+  state String?
+  pincode String?
+  latitude Float?
+  longitude Float?
+  registrationNumber String?
+  registrationState String?
+  features String[] @default([])
+  highlights String[] @default([])
+  isFeatured Boolean @default(false)
+  availableForFinance Boolean @default(true)
+  sellerType String @default("DEALER")
+  isCertified Boolean @default(false)
+  brandId Int
+  categoryId Int
+  dealerId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  brand Brand @relation(fields: [brandId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  dealer Dealer @relation(fields: [dealerId], references: [id])
+  specialTags VehicleSpecialTag[]
+  variants Variant[]
+  bookings Booking[]
+  reviews Review[]
+  wishlist Wishlist[]
+  financeApplications FinanceApplication[]
+  insuranceQuotes InsuranceQuote[]
+  insurancePolicies InsurancePolicy[]
+  leads Lead[]
+  testDrives TestDrive[]
+  priceHistory PriceHistory[]
+  videos VehicleVideo[]
+  vehicleImages VehicleImage[]
+  historyChecks VehicleHistory[]
+  historyLookups VehicleHistoryLookup[]
+  warrantyPurchases WarrantyPurchase[]
+  returnRequests ReturnRequest[]
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([dealerId])
+  @@index([status])
+  @@index([listingStatus])
+  @@index([price])
+  @@index([year])
+  @@index([city])
+}
+
+model VehicleImage {
+  id        Int      @id @default(autoincrement())
+  vehicleId Int
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  thumbUrl  String?
+  altText   String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([vehicleId])
+}
+
+model Variant {
+  id Int @id @default(autoincrement())
+  name String
+  priceDiff Float @default(0)
+  specs String?
+  vehicleId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  @@index([vehicleId])
+}
+
+model PriceHistory {
+  id Int @id @default(autoincrement())
+  vehicleId Int
+  price Float
+  recordedAt DateTime @default(now())
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  @@index([vehicleId])
+  @@index([vehicleId, recordedAt])
+}
+
+model VehicleVideo {
+  id        Int      @id @default(autoincrement())
+  vehicleId Int
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  videoUrl  String
+  thumbnailUrl String?
+  title     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([vehicleId])
+}
+
+/// Where a history record came from. MANUAL means an operator typed it in and
+/// it is therefore unverified â€” no external authority has confirmed it.
+/// External sources (VAHAN/RTO, insurer, service centre) can be added later and
+/// are recorded as their own sources so the UI can distinguish them.
+enum HistorySource {
+  MANUAL
+  VAHAN
+  RTO
+  INSURER
+  SERVICE_CENTRE
+  POLICE
+}
+
+enum HistoryCheckType {
+  OWNERSHIP
+  SERVICE
+  ACCIDENT
+  ODOMETER
+  ENCUMBRANCE
+  CHALLAN
+  INSURANCE
+  PUC
+  RC
+}
+
+enum HistoryCheckStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  NOT_AVAILABLE
+}
+
+/// Audit trail for every external provider call.
+///
+/// Each paid lookup costs money, so every attempt is recorded: which provider,
+/// which plate, what it cost and whether it produced usable data. This is also
+/// what prevents double-charging for the same vehicle within the cache window.
+model VehicleHistoryLookup {
+  id     Int      @id @default(autoincrement())
+  vehicleId Int
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  providerKey String
+  source      HistorySource
+  registrationNumber String
+
+  outcome    String // FOUND | NOT_FOUND | INVALID_PLATE | PROVIDER_ERROR | NOT_CONFIGURED
+  found      Boolean  @default(false)
+  costCents  Int      @default(0)
+  /// Cached response served instead of a fresh call.
+  fromCache  Boolean  @default(false)
+  providerReference String?
+  error      String?
+  durationMs Int?
+
+  createdById Int?
+  createdAt   DateTime @default(now())
+
+  @@index([vehicleId])
+  @@index([providerKey, createdAt])
+}
+
+/// One recorded check against a vehicle. A vehicle can accumulate many checks
+/// over time; the most recent per checkType is the current state.
+model VehicleHistory {
+  id        Int      @id @default(autoincrement())
+  vehicleId Int
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  checkType HistoryCheckType
+  status    HistoryCheckStatus @default(PENDING)
+  source    HistorySource      @default(MANUAL)
+
+  /// Free-form detail shown to the customer, kept factual.
+  summary String?
+  notes   String?
+
+  /// Boolean findings. Null means "not checked" â€” never a false "clean".
+  hasAccidentRecord     Boolean?
+  accidentDetails       String?
+  hasFloodDamage        Boolean?
+  hasOdometerTampering  Boolean?
+  hasLoanEncumbrance    Boolean?
+  pendingChallanCount   Int?
+  ownershipCount        Int?
+
+  /// Document verification.
+  rcVerified            Boolean?
+  insuranceVerified     Boolean?
+  pucValid              Boolean?
+  insuranceValidUntil   DateTime?
+  pucValidUntil         DateTime?
+  registrationValidUntil DateTime?
+
+  /// Optional link to a stored report artefact.
+  reportUrl String?
+
+  checkedAt  DateTime @default(now())
+  verifiedAt DateTime?
+  createdById Int?
+  updatedAt  DateTime @updatedAt
+
+  @@index([vehicleId, checkType])
+  @@index([status])
+}
+
+/// Provider-ready warranty catalogue. Intentionally ships with no seeded
+/// providers: a plan row must correspond to a real, agreed warranty product.
+model WarrantyPlan {
+  id            Int      @id @default(autoincrement())
+  name          String
+  providerName  String
+  providerRef   String?
+  durationMonths Int
+  maxMileageKm   Int
+  coverageType   String   // COMPREHENSIVE | POWERTRAIN
+  coveredComponents String[] @default([])
+  exclusions     String[] @default([])
+  priceAmount    Float
+  isActive       Boolean  @default(true)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  purchases WarrantyPurchase[]
+  @@index([isActive])
+}
+
+enum WarrantyPurchaseStatus {
+  ACTIVE
+  EXPIRED
+  CLAIMED
+  CANCELLED
+}
+
+model WarrantyPurchase {
+  id      Int @id @default(autoincrement())
+  policyNumber String @unique
+
+  vehicleId Int
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planId Int
+  plan   WarrantyPlan @relation(fields: [planId], references: [id])
+
+  startDate    DateTime
+  endDate      DateTime
+  maxMileageKm Int
+  pricePaid    Float
+
+  status WarrantyPurchaseStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  claims WarrantyClaim[]
+  @@index([vehicleId])
+  @@index([userId])
+  @@index([status])
+}
+
+enum WarrantyClaimStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model WarrantyClaim {
+  id          Int      @id @default(autoincrement())
+  purchaseId  Int
+  purchase    WarrantyPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  description String
+  status      WarrantyClaimStatus @default(SUBMITTED)
+  resolution  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([purchaseId])
+}
+
+enum ReturnRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PICKUP_SCHEDULED
+  COMPLETED
+}
+
+/// A buyer's request to return a vehicle. Adjudicated by staff â€” the platform
+/// does not auto-approve, because eligibility depends on commercial terms that
+/// are not encoded here.
+model ReturnRequest {
+  id        Int      @id @default(autoincrement())
+  vehicleId Int
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  reason      String
+  description String?
+
+  status    ReturnRequestStatus @default(REQUESTED)
+  resolutionNotes String?
+
+  requestedAt DateTime @default(now())
+  resolvedAt   DateTime?
+  updatedAt    DateTime @updatedAt
+
+  @@index([vehicleId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Booking {
+  id Int @id @default(autoincrement())
+  bookingDate DateTime
+  status BookingStatus @default(PENDING)
+  notes String?
+  vehicleId Int
+  customerId Int
+  dealerId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  customer User @relation("CustomerBookings", fields: [customerId], references: [id])
+  dealer Dealer @relation("DealerBookings", fields: [dealerId], references: [id])
+  @@index([vehicleId])
+  @@index([customerId])
+  @@index([dealerId])
+  @@index([status])
+}
+
+model Review {
+  id Int @id @default(autoincrement())
+  rating Int
+  comment String?
+  isActive Boolean @default(true)
+  vehicleId Int
+  userId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  @@unique([vehicleId, userId])
+  @@index([vehicleId])
+  @@index([userId])
+}
+
+model Wishlist {
+  id Int @id @default(autoincrement())
+  userId Int
+  vehicleId Int
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  @@unique([userId, vehicleId])
+  @@index([userId])
+  @@index([vehicleId])
+}
+
+model FinanceApplication {
+  id Int @id @default(autoincrement())
+  userId Int?
+  vehicleId Int?
+  status FinanceApplicationStatus @default(DRAFT)
+  loanAmount Float
+  interestRate Float?
+  tenureMonths Int
+  emi Float?
+  downPayment Float @default(0)
+  monthlyIncome Float?
+  employerName String?
+  panNumber String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([status])
+}
+
+model InsuranceQuote {
+  id Int @id @default(autoincrement())
+  providerId String
+  providerName String
+  providerLogo String?
+  vehicleId Int
+  planType String
+  premium Float
+  coverageAmount Float
+  validFrom DateTime
+  validTo DateTime
+  features String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  @@index([vehicleId])
+  @@index([providerId])
+}
+
+model InsurancePolicy {
+  id Int @id @default(autoincrement())
+  userId Int
+  vehicleId Int
+  providerId String
+  providerName String
+  policyNumber String @unique
+  planType String
+  premium Float
+  coverageAmount Float
+  status InsuranceStatus @default(QUOTE)
+  validFrom DateTime
+  validTo DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([status])
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+  userId Int
+  itemType OrderItemType
+  itemId Int
+  itemName String
+  itemImage String?
+  quantity Int @default(1)
+  unitPrice Float
+  totalPrice Float
+  status OrderStatus @default(PLACED)
+  shippingName String?
+  shippingPhone String?
+  shippingAddress1 String?
+  shippingAddress2 String?
+  shippingCity String?
+  shippingState String?
+  shippingPincode String?
+  shippingLandmark String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([status])
+  @@index([itemType])
+}
+
+model Notification {
+  id Int @id @default(autoincrement())
+  userId Int
+  title String
+  body String
+  type NotificationType @default(GENERAL)
+  data Json?
+  isRead Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+}
+
+model Lead {
+  id Int @id @default(autoincrement())
+  vehicleId Int
+  customerName String
+  customerEmail String?
+  customerPhone String
+  message String?
+  status String @default("NEW")
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  @@index([vehicleId])
+  @@index([status])
+}
+
+model TestDrive {
+  id Int @id @default(autoincrement())
+  vehicleId Int
+  // Owner of the request. Null for a guest booking (the public form may be
+  // filled in without an account) and for rows written before ownership was
+  // tracked — a null therefore means "anonymous", never "belongs to nobody in
+  // particular". Every customer-scoped read filters on this column, and the
+  // public POST route only ever sets it from the verified session, never from
+  // anything the client sends.
+  userId Int?
+  customerName String
+  customerPhone String
+  preferredDate DateTime
+  preferredTime String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([vehicleId])
+  @@index([userId])
+}
+
+model InspectionRequest {
+  id Int @id @default(autoincrement())
+  vehicleId Int?
+  customerName String
+  customerPhone String
+  inspectionType String
+  location String
+  preferredDate DateTime
+  preferredTime String
+  notes String?
+  status String @default("REQUESTED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status])
+}
+
+model InsuranceEnquiry {
+  id Int @id @default(autoincrement())
+  customerName String
+  phone String
+  email String?
+  registrationNo String?
+  coverType String
+  message String?
+  status String @default("NEW")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status])
+}
+
+model SellerListing {
+  id Int @id @default(autoincrement())
+  ownerName String
+  phone String
+  email String?
+  vehicleData Json
+  images String[] @default([])
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status])
+}
+
+model ServiceProvider {
+  id Int @id @default(autoincrement())
+  name String
+  description String?
+  phone String
+  email String?
+  city String
+  address String?
+  services String[] @default([])
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([city])
+  @@index([status])
+}
+
+model ServiceBooking {
+  id Int @id @default(autoincrement())
+  providerId Int
+  customerName String
+  customerPhone String
+  service String
+  vehicleReg String?
+  preferredDate DateTime
+  preferredTime String
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([providerId])
+  @@index([status])
+}
+
+model MarketplaceProduct {
+  id Int @id @default(autoincrement())
+  name String
+  description String?
+  price Float
+  category String?
+  images String[] @default([])
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([category])
+  @@index([isActive])
+}
+
+model SpecialTag {
+  id Int @id @default(autoincrement())
+  name String @unique
+  slug String @unique
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([name])
+  @@index([slug])
+  vehicles VehicleSpecialTag[]
+}
+
+model VehicleSpecialTag {
+  id Int @id @default(autoincrement())
+  vehicleId Int
+  tagId Int
+  createdAt DateTime @default(now())
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  tag SpecialTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@unique([vehicleId, tagId])
+  @@index([vehicleId])
+  @@index([tagId])
+}
+
+model NewCar {
+  id              Int     @id @default(autoincrement())
+  brandName       String
+  model           String
+  variant         String?
+  slug            String? @unique
+  exShowroomPrice Float
+  onRoadPrice     Float?
+  fuel            String?
+  fuelType        String?
+  transmission    String?
+  mileageKmpl     Float?
+  engine          String?
+  bodyType        String?
+  features        String[] @default([])
+  imageUrl        String?
+  isElectric      Boolean @default(false)
+  batteryCapacityKwh Float?
+  claimedRangeKm     Int?
+  chargingType       String?
+  fastCharging       Boolean?
+  chargingTimeHours  Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([brandName])
+  @@index([isElectric])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  entity    String
+  entityId  String
+  metadata  String?
+  userId    Int
+  createdAt DateTime @default(now())
+}

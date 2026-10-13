@@ -1,0 +1,1 @@
+SELECT id, title, images FROM "Vehicle" WHERE array_length(images, 1) > 0;

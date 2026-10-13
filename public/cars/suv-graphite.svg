@@ -1,0 +1,41 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f2937"/>
+      <stop offset="1" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f2937"/>
+      <stop offset="1" stop-color="#9a9fa5"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe8ff"/><stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg)"/>
+  <ellipse cx="320" cy="150" rx="430" ry="170" fill="#334155"/>
+  <ellipse cx="520" cy="330" rx="430" ry="170" fill="#334155"/>
+
+  <!-- Ground -->
+  <rect x="30" y="330" width="580" height="6" rx="3" fill="#1b2129"/>
+
+  <!-- Car body -->
+  <g transform="translate(140 120)">
+    <path d="M0 200 L40 150 Q90 90 150 80 L220 78 Q300 110 330 120 L330 200 L320 200 L160 200 Z"
+          fill="url(#body)"/>
+    <path d="M78 66 Q120 96 150 100 L150 200 L70 200 Z" fill="url(#glass)" opacity="0.95"/>
+    <rect x="70" y="150" width="150" height="6" rx="3" fill="#1f2937"/>
+  </g>
+
+  <!-- Wheels -->
+  <g stroke="#141a21" stroke-width="10">
+    <circle cx="220" cy="318" r="34" fill="url(#body)"/>
+    <circle cx="392" cy="318" r="34" fill="url(#body)"/>
+  </g>
+  <g fill="#cbd5e1">
+    <circle cx="220" cy="318" r="12"/><circle cx="392" cy="318" r="12"/>
+  </g>
+
+  <text x="640" y="376" text-anchor="end" font-family="Verdana, sans-serif"
+        font-size="22" fill="#9aa4b2" letter-spacing="1">SUV</text>
+</svg>

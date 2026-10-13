@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder so build/`next start` boot without a real DB;
+      # pages hit the DB lazily and the smoke only asserts HTML shell.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - run: npm run build
+
+      - name: Start production server
+        run: |
+          npm run start -- -p 3000 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/ > /dev/null; then
+              echo "server ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "server did not start in time"; exit 1
+
+      - name: Web smoke (runner.js)
+        run: node scripts/runner.js http://localhost:3000
