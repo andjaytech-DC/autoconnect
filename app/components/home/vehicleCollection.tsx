@@ -33,7 +33,7 @@ export default function VehicleCollection({
             <Link
               key={car.id}
               href={`/cars/${car.id}`}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] shadow-[var(--shadow-subtle)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[hsl(var(--color-line-hover))] hover:shadow-[var(--shadow-elevated-hover)]"
+              className="group flex flex-col overflow-hidden bento-tile rounded-3xl transition-all duration-300"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-[hsl(var(--color-surface-strong))]">
                 {car.image ? (
@@ -42,19 +42,19 @@ export default function VehicleCollection({
                     alt={car.name}
                     fill
                     sizes="(max-width:768px)100vw,25vw"
-                    className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
                     <Sparkles className="text-[hsl(var(--color-content-faint))]" size={36} />
                   </div>
                 )}
-                <span className="absolute left-3 top-3 rounded-md bg-[hsl(var(--color-primary))] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[hsl(var(--color-primary-foreground))]">
+                <span className="absolute left-3 top-3 rounded-md bg-[hsl(var(--color-primary))] px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-[hsl(var(--color-primary-foreground))]">
                   {car.premiumBadge ?? defaultBadge}
                 </span>
               </div>
               <div className="flex flex-1 flex-col px-4 py-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[hsl(var(--color-content-faint))]">
+                <p className="text-xs font-medium uppercase tracking-wider text-[hsl(var(--color-content-faint))]">
                   {car.brand} · {car.year}
                 </p>
                 <h3 className="mt-0.5 text-sm font-bold text-[hsl(var(--color-content))] line-clamp-1 transition-colors group-hover:text-[hsl(var(--color-primary-strong))]">
@@ -113,7 +113,7 @@ export function NewCarCollection({
                   car.slug ??
                     `${car.model}-${car.variant ?? "base"}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
                 )}`}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] shadow-[var(--shadow-subtle)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[hsl(var(--color-line-hover))] hover:shadow-[var(--shadow-elevated-hover)]"
+                className="group flex flex-col overflow-hidden bento-tile rounded-3xl transition-all duration-300"
               >
                 <div className="relative aspect-[4/3] overflow-hidden bg-[hsl(var(--color-surface-strong))]">
                   {imageUrl ? (
@@ -122,19 +122,19 @@ export function NewCarCollection({
                       alt={`${car.brandName} ${car.model}`}
                       fill
                       sizes="(max-width:768px)100vw,25vw"
-                      className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
                       <Sparkles className="text-[hsl(var(--color-content-faint))]" size={36} />
                     </div>
                   )}
-                  <span className="absolute left-3 top-3 rounded-md bg-[hsl(var(--color-success))] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[hsl(var(--color-success-foreground))]">
+                  <span className="absolute left-3 top-3 rounded-md bg-[hsl(var(--color-success))] px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-[hsl(var(--color-success-foreground))]">
                     New
                   </span>
                 </div>
                 <div className="flex flex-1 flex-col px-4 py-3">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-[hsl(var(--color-success))]">
+                  <p className="text-xs font-medium uppercase tracking-wider text-[hsl(var(--color-success))]">
                     {car.brandName}
                   </p>
                   <h3 className="mt-0.5 text-sm font-bold text-[hsl(var(--color-content))] line-clamp-1 transition-colors group-hover:text-[hsl(var(--color-success))]">

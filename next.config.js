@@ -62,12 +62,30 @@ const securityHeaderRules = buildHeaderRules({
 
 const nextConfig = {
   reactStrictMode: true,
+  // Don't advertise the framework in every response.
+  poweredByHeader: false,
 
   turbopack: {
     root: __dirname,
   },
 
-  allowedDevOrigins: ['192.168.1.4'],
+  allowedDevOrigins: ['192.168.1.4', '192.168.1.6'],
+
+  // Images uploaded through NestJS are stored and served by it. Files already
+  // in public/uploads keep winning (rewrites run after the filesystem check),
+  // so older listings still resolve; anything else under /uploads is proxied.
+  async rewrites() {
+    const origin = (process.env.NESTJS_API_URL ?? "http://localhost:5000")
+      .replace(/\/+$/, "")
+      .replace(/\/api$/, "");
+    return [
+      { source: "/uploads/:path*", destination: `${origin}/uploads/:path*` },
+      // Browser calls to the NestJS API go through this same-origin path, so
+      // they work from any host (localhost, a LAN address, a phone) without
+      // CORS or CSP exceptions. Server-side code still calls NestJS directly.
+      { source: "/nest-api/:path*", destination: `${origin}/api/:path*` },
+    ];
+  },
 
   async headers() {
     // Includes the HSTS rule only when TRUST_PROXY_HEADERS is set, and that

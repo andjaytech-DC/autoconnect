@@ -1,5 +1,6 @@
 import { nest, type NestOptions } from "./nest";
 import type {
+  PremiumTag,
   NestBrand,
   NestCategory,
   NestDealer,
@@ -97,23 +98,31 @@ export async function getMarketplace(
   return nest("/marketplace", { query: params, ...publicRead() });
 }
 
-/** Get premium vehicles with optional tag filtering and pagination. */
-export async function getPremiumVehicles(
-  q: { tag?: string; city?: string; page?: number; limit?: number } = {},
-): Promise<{
-  items: NestVehicle[];
-  meta: { total: number; page: number; limit: number; totalPages: number; hasNextPage: boolean };
-}> {
-  return nest(`/premium-vehicles`, {
+export interface PremiumVehicleQuery {
+  /** Tag slug, or comma-separated slugs (any-of). */
+  tag?: string;
+  city?: string;
+  /** `homepage` returns vehicles flagged for the homepage collection. */
+  placement?: "page" | "homepage";
+  sort?: "priority" | "newest" | "price_asc" | "price_desc";
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Premium collection from NestJS. Membership, tags, ordering and expiry are all
+ * decided by the backend (admin-controlled) — nothing is filtered client-side.
+ */
+export async function getPremiumVehicles(q: PremiumVehicleQuery = {}): Promise<NestVehicleList> {
+  return nest<NestVehicleList>("/premium-vehicles", {
     query: q as Record<string, string | number | boolean | undefined | null>,
+    ...publicRead(),
   });
 }
 
-/** Get all premium tags with vehicle counts. */
-export async function getPremiumTags(): Promise<{
-  tags: { id: number; name: string; slug: string; vehicleCount: number }[];
-}> {
-  return nest(`/premium-vehicles/tags`, publicRead());
+/** Active premium tags with the number of visible vehicles in each. */
+export async function getPremiumTags(): Promise<PremiumTag[]> {
+  return nest<PremiumTag[]>("/premium-vehicles/tags", publicRead());
 }
 
 /** "0-5" lakh chip → min/max price in rupees. */

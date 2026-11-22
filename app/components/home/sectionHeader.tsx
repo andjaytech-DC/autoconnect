@@ -15,19 +15,21 @@ export function SectionHeader({
   viewAllLabel = "View All",
 }: SectionHeaderProps) {
   return (
-    <div className="mb-8 flex items-end justify-between">
+    <div className="mb-10 flex items-end justify-between">
       <div>
-        <span className="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--color-primary-strong))]">
-          {eyebrow}
-        </span>
-        <h2 className="mt-2 text-2xl font-extrabold text-[hsl(var(--color-content))] lg:text-3xl">
+        <span className="eyebrow">{eyebrow}</span>
+        <h2 className="mt-3 text-3xl font-bold text-[hsl(var(--color-content))] lg:text-4xl">
           {title}
         </h2>
+        <div
+          className="mt-4 h-px w-28 bg-gradient-to-r from-[hsl(var(--color-primary))] to-transparent"
+          aria-hidden="true"
+        />
       </div>
       {viewAllHref && (
         <Link
           href={viewAllHref}
-          className="hidden items-center gap-1 text-sm font-semibold text-[hsl(var(--color-primary-strong))] transition hover:gap-2 lg:inline-flex"
+          className="hidden min-h-6 items-center gap-1 text-sm font-semibold text-[hsl(var(--color-primary-strong))] transition hover:gap-2 lg:inline-flex"
         >
           {viewAllLabel} <ArrowRight size={16} />
         </Link>
@@ -47,7 +49,7 @@ export function SectionHeaderMobileLink({
     <div className="mt-6 text-center lg:hidden">
       <Link
         href={href}
-        className="inline-flex items-center gap-1 text-sm font-semibold text-[hsl(var(--color-primary-strong))]"
+        className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[hsl(var(--color-primary-strong))]"
       >
         {label} <ArrowRight size={16} />
       </Link>

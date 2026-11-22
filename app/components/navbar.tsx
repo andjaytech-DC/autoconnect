@@ -50,6 +50,10 @@ export default function Navbar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const closeMenus = useCallback(() => setOpenMenu(null), []);
+  // A mouse press focuses the button *before* its click fires. Without this flag,
+  // onFocus opened the menu and the click then toggled it shut, so the dropdowns
+  // could not be opened with a mouse in Chrome/Edge. Keyboard focus still opens it.
+  const pointerFocusRef = useRef(false);
 
   const closeDrawer = useCallback(() => {
     setMobileOpen(false);
@@ -135,44 +139,44 @@ export default function Navbar() {
   return (
     <>
       {/* Top Utility Bar */}
-      <div className="hidden border-b border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] lg:block">
+      <div className="hidden border-b border-[hsl(var(--color-primary)/0.45)] bg-ink-900 lg:block">
         <div className="mx-auto flex h-9 max-w-[1500px] items-center justify-between px-6 text-xs xl:px-8">
           <div className="flex items-center gap-5">
-            <span className="inline-flex items-center gap-1.5 text-[hsl(var(--color-content-muted))]">
+            <span className="inline-flex items-center gap-1.5 text-[#C9CEDF]">
               <ShieldCheck
                 size={14}
-                className="text-[hsl(var(--color-primary-strong))]"
+                className="text-[#D8B762]"
                 aria-hidden="true"
               />
-              India&apos;s Most Trusted Platform
+              Premium pre-owned cars
             </span>
-            <span className="h-3.5 w-px bg-[hsl(var(--color-line))]" aria-hidden="true" />
-            <span className="inline-flex items-center gap-1.5 text-[hsl(var(--color-content-muted))]">
-              <Headphones size={13} className="text-[hsl(var(--color-info))]" aria-hidden="true" />
-              24/7 Support
+            <span className="h-3.5 w-px bg-white/20" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 text-[#C9CEDF]">
+              <Headphones size={13} className="text-[#D8B762]" aria-hidden="true" />
+              Call or WhatsApp support
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-[hsl(var(--color-content-muted))]">
+          <div className="flex items-center gap-4 text-[#C9CEDF]">
             <Link
               href="/cars"
-              className="inline-flex items-center gap-1 transition hover:text-[hsl(var(--color-primary-strong))]"
+              className="inline-flex min-h-6 items-center gap-1 transition hover:text-[#ECD48C]"
             >
               <Search size={13} aria-hidden="true" />
               Search Cars
             </Link>
-            <span className="text-[hsl(var(--color-line-hover))]" aria-hidden="true">
+            <span className="text-white/30" aria-hidden="true">
               |
             </span>
             <Link
               href="/orders"
-              className="transition hover:text-[hsl(var(--color-primary-strong))]"
+              className="inline-flex min-h-6 items-center transition hover:text-[#ECD48C]"
             >
               Track Order
             </Link>
             <Link
               href="/about#contact"
-              className="transition hover:text-[hsl(var(--color-primary-strong))]"
+              className="inline-flex min-h-6 items-center transition hover:text-[#ECD48C]"
             >
               Help
             </Link>
@@ -181,7 +185,7 @@ export default function Navbar() {
       </div>
 
       {/* Main Header */}
-      <header className="sticky top-0 z-50 border-b border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))]/90 backdrop-blur-2xl glass-nav">
+      <header className="sticky top-0 z-50 border-b border-[hsl(var(--color-line))] bg-[hsl(var(--color-bg))]/92 shadow-[0_1px_0_0_hsl(var(--color-primary)/0.4)] backdrop-blur-2xl glass-nav">
         <div
           ref={headerRef}
           className="relative mx-auto max-w-[1500px] px-4 sm:px-6 xl:px-8"
@@ -197,16 +201,17 @@ export default function Navbar() {
             >
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-600 text-lg font-extrabold text-[hsl(var(--color-primary-foreground))] shadow-lg shadow-[hsl(var(--color-primary)/0.25)] transition-transform group-hover:scale-105"
+                className="font-display flex h-11 w-11 items-center justify-center rounded-full bg-ink-900 text-xl font-bold ring-1 ring-[hsl(var(--color-primary))] ring-offset-2 ring-offset-[hsl(var(--color-bg))] shadow-md shadow-[hsl(var(--color-primary)/0.3)] transition-transform group-hover:scale-105"
               >
-                P
+                {/* Own element: background-clip:text would otherwise clip the navy disc away. */}
+                <span className="text-gold-metal">P</span>
               </span>
               <span className="hidden leading-none sm:block">
-                <span className="block text-base font-bold tracking-tight text-[hsl(var(--color-content))]">
-                  PROGRESSIVE{" "}
-                  <span className="text-[hsl(var(--color-primary-strong))]">AUTOHUB</span>
+                <span className="font-display block text-[1.05rem] font-bold uppercase tracking-[0.1em] text-[hsl(var(--color-content))]">
+                  Progressive{" "}
+                  <span className="text-[hsl(var(--color-primary-strong))]">AutoHub</span>
                 </span>
-                <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-wider text-[hsl(var(--color-content-muted))]">
+                <span className="mt-1 block text-[0.65rem] font-medium uppercase tracking-[0.3em] text-[hsl(var(--color-content-muted))]">
                   Buy • Sell • Finance • Service
                 </span>
               </span>
@@ -240,7 +245,7 @@ export default function Navbar() {
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
                   placeholder="Search cars..."
-                  className="w-full bg-transparent py-2 pr-3 text-sm text-[hsl(var(--color-content))] outline-none placeholder:text-[hsl(var(--color-content-muted))]"
+                  className="w-full bg-transparent py-2 pr-3 text-base sm:text-sm text-[hsl(var(--color-content))] outline-none placeholder:text-[hsl(var(--color-content-muted))]"
                 />
               </form>
 
@@ -277,7 +282,7 @@ export default function Navbar() {
               {/* Register */}
               <Link
                 href="/register"
-                className="hidden h-10 items-center rounded-lg bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-4 text-sm font-bold text-[hsl(var(--color-primary-foreground))] shadow-lg shadow-[hsl(var(--color-primary)/0.25)] transition hover:brightness-105 hover:shadow-[hsl(var(--color-primary)/0.35)] lg:flex"
+                className="hidden h-11 items-center rounded-lg bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-4 text-sm font-bold text-[hsl(var(--color-primary-foreground))] shadow-lg shadow-[hsl(var(--color-primary)/0.25)] transition hover:brightness-105 hover:shadow-[hsl(var(--color-primary)/0.35)] lg:flex"
               >
                 Register
               </Link>
@@ -290,7 +295,7 @@ export default function Navbar() {
                 aria-label="Open menu"
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu-drawer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface-strong))] text-[hsl(var(--color-content))] transition hover:bg-[hsl(var(--color-line))] xl:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface-strong))] text-[hsl(var(--color-content))] transition hover:bg-[hsl(var(--color-line))] xl:hidden"
               >
                 <Menu size={20} aria-hidden="true" />
               </button>
@@ -341,8 +346,20 @@ export default function Navbar() {
                 const trigger = (
                   <button
                     type="button"
-                    onClick={() => setOpenMenu(isOpen ? null : item.label)}
-                    onFocus={() => setOpenMenu(item.label)}
+                    onPointerDown={() => {
+                      pointerFocusRef.current = true;
+                    }}
+                    onClick={() => {
+                      pointerFocusRef.current = false;
+                      setOpenMenu(isOpen ? null : item.label);
+                    }}
+                    onFocus={() => {
+                      if (pointerFocusRef.current) {
+                        pointerFocusRef.current = false;
+                        return;
+                      }
+                      setOpenMenu(item.label);
+                    }}
                     aria-expanded={isOpen}
                     aria-haspopup="true"
                     aria-controls={panelId}
@@ -380,7 +397,7 @@ export default function Navbar() {
                                   <span className="min-w-0">
                                     {child.label}
                                     {child.description && (
-                                      <span className="mt-0.5 block text-[11px] font-normal text-[hsl(var(--color-content-muted))]">
+                                      <span className="mt-0.5 block text-xs font-normal text-[hsl(var(--color-content-muted))]">
                                         {child.description}
                                       </span>
                                     )}
@@ -419,7 +436,7 @@ export default function Navbar() {
                 <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
                   {openMegaItem.megaSections?.map((section) => (
                     <div key={section.title}>
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">
                         {section.title}
                       </p>
                       <ul className="space-y-0.5">
@@ -435,7 +452,7 @@ export default function Navbar() {
                             >
                               {child.label}
                               {child.description && (
-                                <span className="mt-0.5 block text-[11px] font-normal text-[hsl(var(--color-content-muted))]">
+                                <span className="mt-0.5 block text-xs font-normal text-[hsl(var(--color-content-muted))]">
                                   {child.description}
                                 </span>
                               )}
@@ -463,6 +480,7 @@ export default function Navbar() {
 
           <div
             ref={drawerRef}
+            id="mobile-menu-drawer"
             role="dialog"
             aria-modal="true"
             aria-label="Site menu"
@@ -474,7 +492,7 @@ export default function Navbar() {
               <Link href="/" onClick={closeEverything} className="flex items-center gap-2.5">
                 <span
                   aria-hidden="true"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-600 text-sm font-extrabold text-[hsl(var(--color-primary-foreground))]"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-600 text-sm font-extrabold text-[hsl(var(--color-primary-foreground))]"
                 >
                   P
                 </span>
@@ -493,7 +511,7 @@ export default function Navbar() {
                 type="button"
                 onClick={closeDrawer}
                 aria-label="Close menu"
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--color-surface-strong))] text-[hsl(var(--color-content))] transition hover:bg-[hsl(var(--color-line))]"
+                className="flex h-11 w-11 items-center justify-center rounded-lg bg-[hsl(var(--color-surface-strong))] text-[hsl(var(--color-content))] transition hover:bg-[hsl(var(--color-line))]"
               >
                 <X size={18} aria-hidden="true" />
               </button>
@@ -520,7 +538,7 @@ export default function Navbar() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search cars..."
-                  className="w-full bg-transparent text-sm text-[hsl(var(--color-content))] outline-none placeholder:text-[hsl(var(--color-content-muted))]"
+                  className="w-full bg-transparent text-base sm:text-sm text-[hsl(var(--color-content))] outline-none placeholder:text-[hsl(var(--color-content-muted))]"
                 />
               </form>
             </div>
@@ -602,7 +620,7 @@ export default function Navbar() {
                               <span className="min-w-0">
                                 {child.label}
                                 {child.description && (
-                                  <span className="mt-0.5 block text-[11px] font-normal text-[hsl(var(--color-content-muted))]">
+                                  <span className="mt-0.5 block text-xs font-normal text-[hsl(var(--color-content-muted))]">
                                     {child.description}
                                   </span>
                                 )}
@@ -644,21 +662,21 @@ export default function Navbar() {
                 <Link
                   href="/wishlist"
                   onClick={closeEverything}
-                  className="transition hover:text-[hsl(var(--color-primary-strong))]"
+                  className="inline-flex min-h-11 items-center transition hover:text-[hsl(var(--color-primary-strong))]"
                 >
                   Wishlist
                 </Link>
                 <Link
                   href="/orders"
                   onClick={closeEverything}
-                  className="transition hover:text-[hsl(var(--color-primary-strong))]"
+                  className="inline-flex min-h-11 items-center transition hover:text-[hsl(var(--color-primary-strong))]"
                 >
                   Track Order
                 </Link>
                 <Link
                   href="/about#contact"
                   onClick={closeEverything}
-                  className="transition hover:text-[hsl(var(--color-primary-strong))]"
+                  className="inline-flex min-h-11 items-center transition hover:text-[hsl(var(--color-primary-strong))]"
                 >
                   Help
                 </Link>

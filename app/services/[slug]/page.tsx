@@ -35,7 +35,7 @@ const SERVICES: Record<string, ServiceDef> = {
     slug: "inspection",
     badge: "Car Inspection",
     title: "Car Inspection",
-    gradient: "from-[#FFC700] to-[#3b82f6]",
+    gradient: "from-[hsl(var(--color-primary))] to-amber-200",
     headline: ["Independent inspection,", "before you buy"],
     intro:
       "Book an independent vehicle inspection and our team covers body, paint, engine, electricals, suspension and interior. Your inspection request is tracked end-to-end so you know exactly where it stands.",
@@ -52,7 +52,7 @@ const SERVICES: Record<string, ServiceDef> = {
     slug: "service",
     badge: "Car Service",
     title: "Car Service",
-    gradient: "from-sky-400 to-[#3b82f6]",
+    gradient: "from-amber-300 to-amber-100",
     headline: ["Routine service,", "done right"],
     intro:
       "Schedule preventive maintenance, periodic servicing and manufacturer-recommended care from verified providers — with transparent pricing and genuine parts.",
@@ -84,7 +84,7 @@ const SERVICES: Record<string, ServiceDef> = {
     slug: "roadside-assistance",
     badge: "Roadside Assistance",
     title: "Roadside Assistance",
-    gradient: "from-[#FFC700] to-yellow-300",
+    gradient: "from-[hsl(var(--color-primary))] to-yellow-300",
     headline: ["Help, wherever you are,", "24/7"],
     intro:
       "Breakdown? Flat tyre? Out of fuel? Our roadside assistance network gets you moving again — available day and night across India.",
@@ -123,16 +123,16 @@ export default async function ServiceDetailPage({
   const icons = [ClipboardCheck, Wrench, HeartHandshake];
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[var(--color-bg-dark)] text-white">
+      <section className="relative overflow-hidden bg-ink-900 text-white">
         <div
           className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-7xl px-6 py-16 sm:py-20 lg:px-12">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#FFC700]/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#FFC700]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--color-primary))]/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[hsl(var(--color-primary))]">
             <Sparkles size={14} aria-hidden="true" />
             {service.badge}
           </span>
@@ -157,10 +157,10 @@ export default async function ServiceDetailPage({
                 className="rounded-2xl border border-line bg-card p-8 transition-all hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-[#FFC700]">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-[hsl(var(--color-primary-strong))]">
                     <Icon size={22} aria-hidden="true" />
                   </span>
-                  <span className="text-3xl font-extrabold text-[var(--color-text-muted)]/30">
+                  <span className="text-3xl font-extrabold text-[hsl(var(--color-content-muted))]/30">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                 </div>
@@ -183,7 +183,7 @@ export default async function ServiceDetailPage({
               { icon: MapPin, label: "Pan-India network", desc: "Coverage across major cities." },
             ].map((item) => (
               <div key={item.label} className="flex flex-col items-center gap-2 text-center">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-[#FFC700]">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-[hsl(var(--color-primary-strong))]">
                   <item.icon size={20} aria-hidden="true" />
                 </span>
                 <h3 className="text-sm font-bold text-content">{item.label}</h3>
@@ -208,7 +208,7 @@ export default async function ServiceDetailPage({
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               href={service.ctaHref}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-7 py-3.5 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-7 py-3.5 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl"
             >
               {service.ctaLabel}
               <ArrowRight size={17} aria-hidden="true" />
@@ -216,7 +216,7 @@ export default async function ServiceDetailPage({
             {service.ctaSecondary && (
               <Link
                 href={service.ctaSecondary.href}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-card px-7 py-3.5 text-sm font-bold text-content transition-colors hover:text-[#FFC700]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-card px-7 py-3.5 text-sm font-bold text-content transition-colors hover:text-[hsl(var(--color-primary-strong))]"
               >
                 {service.ctaSecondary.label}
               </Link>

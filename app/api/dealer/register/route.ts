@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/app/server/prisma";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
 import { enforceRateLimit } from "@/app/lib/rate-limit";
-import { audit, clientIp } from "@/app/server/audit";
-import { requireAdmin } from "@/app/server/authz";
+import { requireAdminSession } from "@/app/server/authz";
+
+export const runtime = "nodejs";
 
 const dealerSchema = z.object({
   businessName: z.string().trim().min(1).max(200),
@@ -23,13 +25,12 @@ const approveSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
 });
 
-/** Normalize a phone number for storage + duplicate comparison: strip spaces, dashes, parens, +91 prefix. */
+/** Normalize a phone number: strip spaces, dashes, parens and the +91 prefix. */
 function normalizePhone(raw: string): string {
   let cleaned = raw.trim().replace(/[\s\-()]/g, "");
-  // Remove +91 or 91 prefix if present
-  if (cleaned.startsWith('+91')) {
+  if (cleaned.startsWith("+91")) {
     cleaned = cleaned.slice(3);
-  } else if (cleaned.startsWith('91') && cleaned.length === 12) {
+  } else if (cleaned.startsWith("91") && cleaned.length === 12) {
     cleaned = cleaned.slice(2);
   }
   return cleaned;
@@ -37,101 +38,88 @@ function normalizePhone(raw: string): string {
 
 /**
  * POST /api/dealer/register — public: submit a dealer onboarding request.
- * Status defaults to PENDING; an admin must approve before the dealer can
+ * NestJS stores it as PENDING; an admin must approve it before the dealer can
  * publish inventory.
  */
 export async function POST(request: Request) {
   if (!(await enforceRateLimit(request, { limit: 3, key: "dealer-register" })).ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
+  let body: unknown;
   try {
-    const parsed = dealerSchema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
-    const clean = { ...parsed.data, phone: normalizePhone(parsed.data.phone) };
-// The Dealer table stores no email — contact lives on the linked User account
-      // (Dealer.userId) and `phone` is the business contact for onboarding. So
-      // duplicate detection is by phone.
-      const phoneExists = await prisma.dealer.findFirst({ where: { phone: clean.phone } });
-      if (phoneExists) return NextResponse.json({ error: "A dealer with this phone number already exists" }, { status: 409 });
-      const dealer = await prisma.dealer.create({
-        data: {
-          businessName: clean.businessName,
-          phone: clean.phone,
-          address: clean.address,
-          city: clean.city,
-          state: clean.state,
-          pincode: clean.pincode,
-          status: "PENDING",
-        },
-      });
-    await audit({ action: "DEALER_REGISTER", entity: "Dealer", entityId: dealer.id, ipAddress: clientIp(request) });
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const parsed = dealerSchema.safeParse(
+    body && typeof body === "object" && "phone" in body && typeof (body as { phone: unknown }).phone === "string"
+      ? { ...body, phone: normalizePhone((body as { phone: string }).phone) }
+      : body,
+  );
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
+  }
+  const { country: _country, ...fields } = parsed.data;
+  try {
+    const dealer = await backendFetch<{ id: number; status: string }>("/dealers/apply", {
+      method: "POST",
+      body: fields,
+    });
     return NextResponse.json({ data: { id: dealer.id, status: dealer.status } }, { status: 201 });
   } catch (err) {
-    if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "P2002") {
-      return NextResponse.json({ error: "A dealer with these details already exists" }, { status: 409 });
-    }
-    return NextResponse.json({ error: "Unable to register dealer" }, { status: 500 });
+    return backendErrorResponse(err);
   }
 }
 
 /** GET /api/dealer/register — admin: list dealer applications. */
 export async function GET(request: Request) {
-  const auth = await requireAdmin(request);
-  if (auth instanceof NextResponse) return auth;
+  const auth = await requireAdminSession(request);
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
   const status = new URL(request.url).searchParams.get("status");
-  const dealers = await prisma.dealer.findMany({
-    where: status ? { status: status as never } : undefined,
-    orderBy: { createdAt: "desc" },
-select: {
-        id: true, businessName: true, phone: true,
-        city: true, state: true, address: true, pincode: true,
-        isVerified: true, status: true, createdAt: true,
-      },
-  });
-  return NextResponse.json({ dealers });
+  try {
+    const dealers = await backendFetch<unknown[]>(
+      `/dealers/admin/applications${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+      { token: auth.session.token },
+    );
+    return NextResponse.json({ dealers: dealers ?? [] });
+  } catch (err) {
+    return backendErrorResponse(err);
+  }
 }
 
 /** PATCH /api/dealer/register — admin: approve or reject a dealer. */
 export async function PATCH(request: Request) {
-  const auth = await requireAdmin(request);
-  if (auth instanceof NextResponse) return auth;
+  const auth = await requireAdminSession(request);
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
+
+  let body: { id?: unknown; status?: unknown };
+  try {
+    body = (await request.json()) as { id?: unknown; status?: unknown };
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (typeof body.id !== "number" || !Number.isInteger(body.id) || body.id <= 0) {
+    return NextResponse.json({ error: "Dealer id is required" }, { status: 400 });
+  }
+  const parsed = approveSchema.safeParse({ status: body.status });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Status must be APPROVED or REJECTED" }, { status: 400 });
+  }
 
   try {
-    const body = await request.json();
-    const { id } = body;
-    if (!id || typeof id !== "number") {
-      return NextResponse.json({ error: "Dealer id is required" }, { status: 400 });
-    }
-    const parsed = approveSchema.safeParse({ status: body.status });
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Status must be APPROVED or REJECTED" }, { status: 400 });
-    }
-
-    const dealer = await prisma.dealer.findUnique({ where: { id } });
-    if (!dealer) {
-      return NextResponse.json({ error: "Dealer not found" }, { status: 404 });
-    }
-
-// No `approvedAt` column: Dealer carries `isVerified` + `status` only, and the
-      // decision time is the AuditLog entry written below.
-      const updated = await prisma.dealer.update({
-        where: { id },
-        data: {
-          status: parsed.data.status,
-          isVerified: parsed.data.status === "APPROVED",
-        },
-      });
-
-    await audit({
-      action: parsed.data.status === "APPROVED" ? "DEALER_APPROVE" : "DEALER_REJECT",
-      entity: "Dealer",
-      entityId: dealer.id,
-      ipAddress: clientIp(request),
+    const updated = await backendFetch<unknown>(`/dealers/${body.id}/status`, {
+      method: "PATCH",
+      token: auth.session.token,
+      body: { status: parsed.data.status },
     });
-
     return NextResponse.json({ data: updated });
   } catch (err) {
-    console.error("Failed to update dealer status:", err);
-    return NextResponse.json({ error: "Unable to update dealer status" }, { status: 500 });
+    return backendErrorResponse(err);
   }
 }

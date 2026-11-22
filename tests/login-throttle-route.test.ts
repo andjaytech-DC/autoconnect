@@ -1,4 +1,4 @@
-import { test, beforeEach } from "node:test";
+import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { resetLoginThrottle } from "../app/server/login-throttle";
@@ -12,6 +12,29 @@ import { POST as registerPOST } from "../app/api/auth/register/route";
  * matters: 429, not another 401, after the budget is spent.
  */
 
+/**
+ * NestJS is the only identity store, so these tests stand in a backend that
+ * rejects every credential with 401 (what the real one does for an unknown
+ * user or a wrong password).
+ */
+const realFetch = globalThis.fetch;
+const realUrl = process.env.NESTJS_API_URL;
+
+before(() => {
+  process.env.NESTJS_API_URL = "http://backend.test/api";
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ message: "Invalid email or password." }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    })) as typeof fetch;
+});
+
+after(() => {
+  globalThis.fetch = realFetch;
+  if (realUrl === undefined) delete process.env.NESTJS_API_URL;
+  else process.env.NESTJS_API_URL = realUrl;
+});
+
 beforeEach(() => resetLoginThrottle());
 
 function loginRequest(username: string, password: string): Request {
@@ -22,7 +45,7 @@ function loginRequest(username: string, password: string): Request {
   });
 }
 
-/** A username that certainly does not exist in any store. */
+/** A username that certainly does not exist. */
 const GHOST = `no-such-user-${Date.now()}`;
 
 test("an unknown username is rejected and counted", async () => {

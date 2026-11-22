@@ -1,13 +1,29 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import { BRAND_SLUGS, type BrandSlug } from "@/app/data/navigation";
-import { getBrands, getVehicles, getNewCars, mapVehicle, resolveBrandId, type UiVehicle, type NestNewCar } from "@/app/lib/nest-public";
+import { SafeImage } from "@/app/components/ui/SafeImage";
+import { BRAND_SLUGS, brandLabel, type BrandSlug } from "@/app/data/navigation";
+import { getBrands, getVehicles, getNewCars, mapVehicle } from "@/app/lib/nest-public";
 
 export const dynamic = "force-dynamic";
 
 function titleCase(slug: string): string {
-  return slug.charAt(0).toUpperCase() + slug.slice(1);
+  return brandLabel(slug);
+}
+
+const normBrand = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Match a URL slug to a real brand from the backend. The slug is a short form
+ * ("mercedes", "maruti"), so an exact name match alone found nothing for
+ * "Mercedes-Benz" or "Maruti Suzuki" and those pages showed zero cars.
+ */
+function matchBrand<T extends { name: string }>(brands: T[], slug: string): T | undefined {
+  const key = normBrand(slug);
+  return (
+    brands.find((b) => normBrand(b.name) === key) ??
+    (key.length >= 3 ? brands.find((b) => normBrand(b.name).startsWith(key)) : undefined)
+  );
 }
 
 function renderVehicleGrid({
@@ -62,10 +78,11 @@ function renderVehicleGrid({
                   >
                     <div className="relative h-48 w-full flex items-center justify-center bg-surface overflow-hidden">
                       {imageUrl ? (
-                        <img
+                        <SafeImage
                           src={imageUrl}
                           alt={`${car.brandName} ${car.model}`}
-                          className="h-full w-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <span className="text-sm text-content-faint">No image</span>
@@ -83,10 +100,10 @@ function renderVehicleGrid({
                         </p>
                       </div>
                       <div className="pt-3 mt-3 border-t border-divider flex items-center justify-between">
-                        <span className="text-lg font-bold text-emerald-400">
+                        <span className="text-lg font-bold text-emerald-700">
                           {priceStr} <span className="text-xs font-normal text-content-muted">ex-showroom</span>
                         </span>
-                        <span aria-hidden="true" className="p-2.5 rounded-xl bg-surface group-hover:bg-emerald-600 group-hover:text-white text-content-muted transition-colors">
+                        <span aria-hidden="true" className="p-2.5 rounded-xl bg-surface group-hover:bg-emerald-700 group-hover:text-white text-content-muted transition-colors">
                           <ArrowUpRight size={18} />
                         </span>
                       </div>
@@ -113,10 +130,11 @@ function renderVehicleGrid({
                 >
                   <div className="relative h-48 w-full flex items-center justify-center bg-surface overflow-hidden">
                     {car.image ? (
-                      <img
+                      <SafeImage
                         src={car.image}
                         alt={car.name}
-                        className="h-full w-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <span className="text-sm text-content-faint">No image</span>
@@ -174,11 +192,11 @@ export default async function BrandPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const brandName = titleCase(slug);
 
   if (!BRAND_SLUGS.includes(slug as BrandSlug)) {
     notFound();
   }
+  let brandName = titleCase(slug);
 
   // Public brand listings straight from NestJS (best-effort; error state on failure).
   let displayCars: import("@/app/lib/nest-public").UiVehicle[] = [];
@@ -187,7 +205,9 @@ export default async function BrandPage({
   let newCarCount = 0;
   let error = false;
   try {
-    const brandId = await resolveBrandId(brandName);
+    const brand = matchBrand((await getBrands()) ?? [], slug);
+    if (brand) brandName = brand.name;
+    const brandId = brand?.id;
     if (brandId) {
       const [vehicleData, newCarData] = await Promise.all([
         getVehicles({ brandId, status: "AVAILABLE", limit: 24 }),
@@ -202,10 +222,9 @@ export default async function BrandPage({
   } catch {
     error = true;
   }
-  void getBrands;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
 
       {/* Brand hero */}
       <section className="bg-[hsl(var(--color-bg))] text-[hsl(var(--color-content))]">

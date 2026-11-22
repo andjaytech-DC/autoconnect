@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { getMarketplace, type NestMarketplaceProduct } from "@/app/lib/nest-public";
-import { ShoppingBag, Package, ArrowRight } from "lucide-react";
+import { ShoppingBag, Package, ArrowRight, Search } from "lucide-react";
+import { SafeImage } from "@/app/components/ui/SafeImage";
+import EmptyState from "@/app/components/ui/EmptyState";
+import PageHeader from "@/app/components/ui/PageHeader";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -8,7 +11,16 @@ export const metadata: Metadata = {
   description: "Accessories, tyres, batteries, car care, electronics and spare parts.",
 };
 
-const CATEGORIES = ["ALL", "ACCESSORIES", "TYRES", "BATTERIES", "CAR_CARE", "ELECTRONICS", "SPARE_PARTS"];
+// EXTERIOR and INTERIOR exist in the catalogue but had no filter chip, so those products were unreachable except under ALL.
+const CATEGORIES = ["ALL", "ACCESSORIES", "EXTERIOR", "INTERIOR", "TYRES", "BATTERIES", "CAR_CARE", "ELECTRONICS", "SPARE_PARTS"];
+
+function marketplaceHref(category?: string, q?: string) {
+  const p = new URLSearchParams();
+  if (category && category !== "ALL") p.set("category", category);
+  if (q) p.set("q", q);
+  const qs = p.toString();
+  return qs ? `/marketplace?${qs}` : "/marketplace";
+}
 
 type ProductRow = {
   id: number;
@@ -36,54 +48,73 @@ function toRows(raw: NestMarketplaceProduct[]): ProductRow[] {
     }));
 }
 
-async function fetchProducts(category?: string): Promise<{ rows: ProductRow[]; error: boolean }> {
+async function fetchProducts(category?: string, q?: string): Promise<{ rows: ProductRow[]; error: boolean }> {
   try {
     const raw = await getMarketplace(category && category !== "ALL" ? { category } : {});
     const list = Array.isArray(raw) ? raw : (raw.products ?? []);
-    return { rows: toRows(list), error: false };
+    let rows = toRows(list);
+    // The API only filters by category, so the (small) catalogue is matched by name, brand and category here.
+    const needle = q?.trim().toLowerCase();
+    if (needle) {
+      rows = rows.filter((r) => `${r.name} ${r.brand} ${r.category.replace("_", " ")}`.toLowerCase().includes(needle));
+    }
+    return { rows, error: false };
   } catch {
     return { rows: [], error: true };
   }
 }
 
-export default async function MarketplacePage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
-  const { category } = await searchParams;
-  const { rows: products, error } = await fetchProducts(category);
+export default async function MarketplacePage({ searchParams }: { searchParams: Promise<{ category?: string; q?: string }> }) {
+  const { category, q: rawQ } = await searchParams;
+  const q = rawQ?.trim().slice(0, 80) || undefined;
+  const { rows: products, error } = await fetchProducts(category, q);
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white">
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl animate-pulse-slow" />
-          <div className="absolute right-0 top-10 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl animate-pulse-slow" style={{ animationDelay: "1s" }} />
-        </div>
-        <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-12 lg:py-20">
-          <span className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-[0.18em] px-4 py-2 rounded-full mb-5">
-            <ShoppingBag size={14} />
-            Auto Products
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
-            Automotive{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFC700] to-yellow-300">Marketplace</span>
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-slate-400">
-            Accessories, tyres, batteries, car care products, electronics and spare parts.
+      {/* Header + product search */}
+      <PageHeader
+        eyebrow="Auto products"
+        title="Automotive Marketplace"
+        description="Accessories, tyres, batteries, car care products, electronics and spare parts."
+        actions={
+          <form action="/marketplace" method="get" role="search" className="flex w-full max-w-xl gap-2">
+            {category && category !== "ALL" && <input type="hidden" name="category" value={category} />}
+            <label htmlFor="mk-q" className="sr-only">Search products</label>
+            <input
+              id="mk-q"
+              name="q"
+              type="search"
+              defaultValue={q}
+              maxLength={80}
+              placeholder="Search products or brands"
+              className="min-h-11 min-w-0 flex-1 rounded-control border border-white/20 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+            />
+            <button type="submit" className="btn btn-primary shrink-0 gap-2">
+              <Search size={16} aria-hidden="true" /> Search
+            </button>
+          </form>
+        }
+      />
+
+      <div className="page-container flex-1 py-10">
+        {q && !error && (
+          <p className="mb-4 text-sm text-content-muted" role="status">
+            {products.length} {products.length === 1 ? "result" : "results"} for <strong className="text-content">“{q}”</strong>
+            {" · "}
+            <a href={marketplaceHref(category)} className="font-semibold text-primary-strong hover:underline">Clear search</a>
           </p>
-        </div>
-      </section>
-
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 lg:px-12">
+        )}
         {/* Category filter chips */}
         <div className="flex flex-wrap gap-2 mb-8">
           {CATEGORIES.map((c) => (
             <a
               key={c}
-              href={c === "ALL" ? "/marketplace" : `/marketplace?category=${c}`}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              href={marketplaceHref(c, q)}
+              aria-current={(!category && c === "ALL") || category === c ? "page" : undefined}
+              className={`inline-flex min-h-11 items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 ((!category && c === "ALL") || category === c)
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                  ? "bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))] shadow-lg shadow-[hsl(var(--color-primary)/0.25)]"
                   : "bg-card text-content border border-line hover:border-emerald-300"
               }`}
             >
@@ -93,32 +124,35 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         </div>
 
         {error ? (
-          <div className="rounded-3xl border border-dashed border-line bg-surface px-6 py-20 text-center">
-            <ShoppingBag size={48} className="mx-auto text-content-faint" />
-            <h2 className="mt-5 text-xl font-bold text-content">Unable to load products</h2>
-            <p className="mt-2 text-sm text-content-muted max-w-md mx-auto">
-              Please check your connection and retry.
-            </p>
-            <a
-              href={category && category !== "ALL" ? `/marketplace?category=${category}` : "/marketplace"}
-              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
-            >
-              Retry <ArrowRight size={16} />
-            </a>
-          </div>
+          <EmptyState
+            tone="error"
+            icon={ShoppingBag}
+            title="Unable to load products"
+            description="Please check your connection and retry."
+            action={
+              <a
+                href={marketplaceHref(category, q)}
+                className="btn btn-primary gap-2"
+              >
+                Retry <ArrowRight size={16} aria-hidden="true" />
+              </a>
+            }
+          />
         ) : products.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {products.map((p) => (
+            {products.map((p, index) => (
               <div
                 key={p.id}
                 className="group overflow-hidden rounded-2xl border border-line bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
               >
                 {p.imageUrl ? (
-                  <div className="relative h-48 overflow-hidden bg-[#141a21]">
-                    <img
-                      src={p.imageUrl ?? undefined}
+                  <div className="relative h-48 overflow-hidden bg-[hsl(var(--color-surface-strong))]">
+                    <SafeImage
+                      src={p.imageUrl}
                       alt={p.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      priority={index < 4}
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                 ) : (
@@ -127,10 +161,10 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
                   </div>
                 )}
                 <div className="p-4">
-                  <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">{p.brand}</p>
+                  <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">{p.brand}</p>
                   <p className="mt-1 font-bold text-content text-sm truncate">{p.name}</p>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <p className="text-lg font-extrabold text-emerald-400">
+                    <p className="text-lg font-extrabold text-content">
                       ₹{(p.priceSale ?? p.priceMrp).toLocaleString("en-IN")}
                     </p>
                     {p.priceSale && (
@@ -139,7 +173,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
                       </p>
                     )}
                   </div>
-                  <p className={`mt-2 text-xs font-semibold ${p.stock > 0 ? "text-emerald-400" : "text-red-500"}`}>
+                  <p className={`mt-2 text-xs font-semibold ${p.stock > 0 ? "text-emerald-700" : "text-red-700"}`}>
                     {p.stock > 0 ? "● In stock" : "● Out of stock"}
                   </p>
                 </div>
@@ -147,23 +181,24 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-line bg-surface px-6 py-20 text-center">
-            <ShoppingBag size={48} className="mx-auto text-content-faint" />
-            <h2 className="mt-5 text-xl font-bold text-content">No products found</h2>
-            <p className="mt-2 text-sm text-content-muted max-w-md mx-auto">
-              {category && category !== "ALL"
-                ? `No products in the ${category.replace("_", " ").toLowerCase()} category.`
-                : "Marketplace products will appear here once inventory is added."}
-            </p>
-            <a
-              href="/marketplace"
-              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
-            >
-              View all categories <ArrowRight size={16} />
-            </a>
-          </div>
+          <EmptyState
+            icon={ShoppingBag}
+            title="No products found"
+            description={
+              q
+                ? `Nothing matched “${q}”${category && category !== "ALL" ? ` in ${category.replace("_", " ").toLowerCase()}` : ""}. Try a different word or clear the search.`
+                : category && category !== "ALL"
+                  ? `No products in the ${category.replace("_", " ").toLowerCase()} category.`
+                  : "Marketplace products will appear here once inventory is added."
+            }
+            action={
+              <a href="/marketplace" className="btn btn-primary gap-2">
+                View all products <ArrowRight size={16} aria-hidden="true" />
+              </a>
+            }
+          />
         )}
-      </main>
+      </div>
     </div>
   );
 }

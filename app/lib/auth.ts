@@ -159,18 +159,3 @@ const ROLE_VALUES: readonly UserRole[] = [
 export function isKnownRole(role: string): role is UserRole {
   return ROLE_VALUES.includes(role as UserRole);
 }
-
-/**
- * Whether the built-in credential store may be used.
- *
- * The local store exists so the app is usable before the NestJS backend is
- * deployed. It is a separate, weaker source of truth: a user who was removed,
- * disabled or demoted in the backend still has a working local row, so in
- * production the backend must be the only way in. Set
- * ALLOW_LOCAL_AUTH_FALLBACK=true to re-enable it for a specific deployment.
- */
-export function localAuthAllowed(): boolean {
-  if (process.env.NODE_ENV !== "production") return true;
-  const raw = (process.env.ALLOW_LOCAL_AUTH_FALLBACK ?? "").trim().toLowerCase();
-  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
-}

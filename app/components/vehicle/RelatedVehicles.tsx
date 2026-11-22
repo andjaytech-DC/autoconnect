@@ -30,7 +30,7 @@ export default function RelatedVehicles({
                 />
               ) : null}
               {v.images && v.images.length > 1 && (
-                <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-[hsl(var(--color-ink-900)/0.75)] px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+                <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-ink-900/75 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
                   <Camera size={10} aria-hidden="true" />
                   {v.images.length}
                 </span>

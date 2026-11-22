@@ -5,8 +5,10 @@ import type { Metadata } from "next";
 import { ShieldCheck } from "lucide-react";
 import VehicleDetailClient from "@/app/components/vehicle/VehicleDetailClient";
 import VehicleReviews from "@/app/components/vehicle/VehicleReviews";
+import ReserveVehicle from "@/app/components/vehicle/ReserveVehicle";
 import VehicleTrustSection from "@/app/components/vehicle/VehicleTrustSection";
 import RelatedVehicles from "@/app/components/vehicle/RelatedVehicles";
+import { vehicleDisplayName } from "@/app/lib/vehicle-name";
 import { getSession } from "@/app/server/session";
 import { jsonLdScriptProps } from "@/app/lib/json-ld";
 import {
@@ -64,7 +66,7 @@ export async function generateMetadata(
   if (!v) {
     return { title: "Vehicle not found — Progressive AutoHub", robots: { index: false } };
   }
-  const title = `${v.brand?.name ?? ""} ${v.title} ${v.year}`.trim();
+  const title = `${vehicleDisplayName(v.brand?.name, v.title)} ${v.year}`.trim();
   const description =
     v.description?.slice(0, 160) ??
     `Buy ${title} at Progressive AutoHub — ₹${v.price.toLocaleString("en-IN")}, ${v.fuel}, ${v.transmission}.`;
@@ -106,14 +108,14 @@ export default async function VehicleDetailPage(
   if (loadError || !v) {
     return (
       <div className="min-h-screen bg-[hsl(var(--color-bg))] font-sans text-[hsl(var(--color-content))]">
-        <main className="container flex-1 py-16">
+        <div className="container flex-1 py-16">
           <div className="rounded-3xl border border-dashed border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] px-6 py-20 text-center">
             <h1 className="text-xl font-bold">Unable to load vehicle</h1>
             <p className="mx-auto mt-2 max-w-md text-sm text-[hsl(var(--color-content-muted))]">
               Please check your connection and retry.
             </p>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -124,7 +126,7 @@ export default async function VehicleDetailPage(
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Car",
-    name: `${vehicle.brand?.name ?? ""} ${vehicle.title}`.trim(),
+    name: vehicleDisplayName(vehicle.brand?.name, vehicle.title),
     brand: { "@type": "Brand", name: vehicle.brand?.name },
     model: vehicle.title,
     vehicleModelDate: String(vehicle.year),
@@ -202,7 +204,7 @@ export default async function VehicleDetailPage(
         <div className="container relative pt-8 pb-6 lg:pt-12 lg:pb-8">
           {/* Breadcrumb */}
           <nav className="mb-6 flex items-center gap-2 text-xs text-[hsl(var(--color-content-muted))]" aria-label="Breadcrumb">
-            <Link href="/cars" className="transition-colors hover:text-[hsl(var(--color-primary-strong))]">Cars</Link>
+            <Link href="/cars" className="inline-flex min-h-11 items-center transition-colors hover:text-[hsl(var(--color-primary-strong))]">Cars</Link>
             <span aria-hidden="true">/</span>
             <span>{vehicle.brand?.name}</span>
             <span aria-hidden="true">/</span>
@@ -216,7 +218,7 @@ export default async function VehicleDetailPage(
                 {heroImage ? (
                   <Image
                     src={heroImage}
-                    alt={`${vehicle.brand?.name ?? ""} ${vehicle.title}`}
+                    alt={vehicleDisplayName(vehicle.brand?.name, vehicle.title)}
                     fill
                     priority
                     sizes="(max-width: 1024px) 100vw, 60vw"
@@ -240,7 +242,7 @@ export default async function VehicleDetailPage(
                 Certified
               </span>
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
-                {vehicle.brand?.name} {vehicle.title}
+                {vehicleDisplayName(vehicle.brand?.name, vehicle.title)}
               </h1>
               <p className="mt-2 text-lg text-[hsl(var(--color-content-muted))]">{vehicle.year}</p>
               <p className="mt-4 text-4xl font-extrabold text-[hsl(var(--color-content))]">
@@ -278,7 +280,10 @@ export default async function VehicleDetailPage(
           />
 
           {/* Vehicle history + return request — real VehicleHistory rows. */}
-          <VehicleTrustSection vehicleId={vehicle.id} />
+          <div className="space-y-6">
+            <ReserveVehicle vehicleId={vehicle.id} available={vehicle.status === "AVAILABLE"} />
+            <VehicleTrustSection vehicleId={vehicle.id} />
+          </div>
 
           {/* Owner reviews — real rows from the backend Review model. */}
           <VehicleReviews

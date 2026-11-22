@@ -141,12 +141,12 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
-      <main className="flex-1">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
+      <div className="flex-1">
     <div className="mx-auto max-w-5xl px-6 py-12 lg:px-12">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFC700] to-yellow-500 text-[#15130a]">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-500 text-[#15130a]">
             <CalendarCheck size={20} aria-hidden="true" />
           </span>
           <div>
@@ -157,7 +157,7 @@ export default function BookingsPage() {
         <button
           type="button"
           onClick={() => setShowForm((s) => !s)}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-5 py-2.5 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all"
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-5 py-2.5 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all"
         >
           <Plus size={16} aria-hidden="true" />
           New Booking
@@ -226,12 +226,12 @@ export default function BookingsPage() {
             <button
               type="submit"
               disabled={busy}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#FFC700] px-5 py-2.5 text-sm font-bold text-[#15130a] hover:brightness-110 disabled:opacity-60 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--color-primary))] px-5 py-2.5 text-sm font-bold text-[#15130a] hover:brightness-110 disabled:opacity-60 transition-colors"
             >
               {busy && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
               Confirm Booking
             </button>
-            {error && <p className="text-sm text-red-400" role="alert">{error}</p>}
+            {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
           </div>
         </form>
       )}
@@ -253,10 +253,10 @@ export default function BookingsPage() {
             const car = getCarRef(b.carId);
             const statusStyle =
               b.status === "CONFIRMED"
-                ? "bg-emerald-500/10 text-emerald-400"
+                ? "bg-emerald-500/10 text-emerald-700"
                 : b.status === "COMPLETED"
                   ? "bg-blue-50 text-blue-700"
-                  : "bg-red-500/10 text-red-400";
+                  : "bg-red-500/10 text-red-700";
             return (
               <li
                 key={b.id}
@@ -279,7 +279,7 @@ export default function BookingsPage() {
                     <button
                       type="button"
                       onClick={() => cancel(b.id)}
-                      className="text-sm font-bold text-red-400 hover:text-red-400"
+                      className="text-sm font-bold text-red-700 hover:text-red-700"
                     >
                       Cancel
                     </button>
@@ -293,13 +293,13 @@ export default function BookingsPage() {
 
       <p className="mt-8 text-xs text-content-muted">
         Want to browse more cars first?{" "}
-        <Link href="/cars" className="font-semibold text-[#FFC700]">
+        <Link href="/cars" className="font-semibold text-[hsl(var(--color-primary-strong))]">
           Browse the showroom
         </Link>
         .
       </p>
       </div>
-      </main>
+      </div>
     </div>
   );
 }

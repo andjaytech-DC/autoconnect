@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Heart, Loader2, Trash2 } from "lucide-react";
 import { getCarRef, loadCarRefs } from "@/app/lib/account";
 import { cn } from "@/app/lib/utils";
+import EmptyState from "@/app/components/ui/EmptyState";
 
 interface WishlistItem {
   id: string;
@@ -90,11 +91,11 @@ export default function WishlistPage() {
   const savedCarIds = new Set(items.map((w) => w.carId));
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
-      <main className="flex-1">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
+      <div className="flex-1">
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-12">
       <div className="mb-8 flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFC700] to-yellow-500 text-[#15130a]">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-yellow-500 text-primary-foreground">
           <Heart size={20} aria-hidden="true" />
         </span>
         <div>
@@ -108,19 +109,16 @@ export default function WishlistPage() {
           <span className="ml-2">Loading your saved cars…</span>
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-card py-20 text-center">
-          <Heart size={40} className="mx-auto text-content-faint" aria-hidden="true" />
-          <p className="mt-4 font-semibold text-content">No saved cars yet</p>
-          <p className="mt-1 text-sm text-content-muted">
-            Tap the heart on any car to save it here for later.
-          </p>
-          <Link
-            href="/cars"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-6 py-3 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 hover:shadow-xl"
-          >
-            Browse Cars
-          </Link>
-        </div>
+        <EmptyState
+          icon={Heart}
+          title="No saved cars yet"
+          description="Tap the heart on any car to save it here for later."
+          action={
+            <Link href="/cars" className="btn btn-primary">
+              Browse cars
+            </Link>
+          }
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((w) => {
@@ -132,8 +130,8 @@ export default function WishlistPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-wider text-[#FFC700]">
-                      {car.brand} · {car.type}
+                    <p className="text-xs uppercase tracking-wider text-primary-strong">
+                      {[car.brand, car.type].filter(Boolean).join(" · ")}
                     </p>
                     <h3 className="mt-1 font-bold text-content">{car.name}</h3>
                   </div>
@@ -142,7 +140,7 @@ export default function WishlistPage() {
                     onClick={() => removeCar(car.id)}
                     disabled={toggling === car.id}
                     aria-label={`Remove ${car.name} from saved cars`}
-                    className="rounded-lg p-2 text-content-muted hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    className="rounded-lg p-2 text-content-muted hover:bg-error/10 hover:text-error transition-colors"
                   >
                     <Trash2 size={16} aria-hidden="true" />
                   </button>
@@ -172,7 +170,7 @@ export default function WishlistPage() {
                         className={cn(
                           "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm",
                           saved
-                            ? "bg-emerald-500/10 text-emerald-400"
+                            ? "bg-success/10 text-success"
                             : "text-content-muted hover:bg-surface hover:text-content",
                         )}
                       >
@@ -180,7 +178,7 @@ export default function WishlistPage() {
                         <Heart
                           size={14}
                           aria-hidden="true"
-                          className={cn(saved && "fill-[#FFC700] text-[#FFC700]")}
+                          className={cn(saved && "fill-primary text-primary-strong")}
                         />
                       </button>
                     </li>
@@ -192,7 +190,7 @@ export default function WishlistPage() {
         </div>
       )}
       </div>
-      </main>
+      </div>
     </div>
   );
 }

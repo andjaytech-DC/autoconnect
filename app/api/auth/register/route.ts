@@ -1,23 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import {
-  localAuthAllowed,
-  signSession,
-  withoutToken,
-  type SessionUser,
-} from "@/app/lib/auth";
-import { createUser, DuplicateUserError } from "@/app/server/users";
+import { signSession, withoutToken, type SessionUser } from "@/app/lib/auth";
 import { applySessionCookies } from "@/app/server/session-cookies";
 import { enforceRateLimit } from "@/app/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-/** NestJS backend base URL. Falls back to the local store when unreachable.
- * NOTE: NESTJS_API_URL already includes `/api` (e.g. http://localhost:5000/api),
- * so callers must append paths WITHOUT a second `/api` prefix —
- * `${NESTJS_URL}/auth/register`, NOT `${NESTJS_URL}/api/auth/register`. */
-const NESTJS_URL = (process.env.NESTJS_API_URL ?? "").replace(/\/+$/, "");
+/**
+ * NestJS backend base URL, read per request. NESTJS_API_URL already includes
+ * `/api`, so append paths WITHOUT a second `/api` prefix.
+ */
+const nestUrl = (): string => (process.env.NESTJS_API_URL ?? "").replace(/\/+$/, "");
 
 const registerSchema = z.object({
   username: z
@@ -61,9 +55,8 @@ interface RegisterBackendResult {
   user?: SessionUser;
   /**
    * True when the backend itself answered (any status) — false on a network
-   * error or timeout. This distinction decides whether the local store may
-   * even be considered: a backend that explicitly rejects (say, a 409
-   * duplicate) must never be overridden by a local row.
+   * error or timeout. A rejection (say, a 409 duplicate) is final; an
+   * unreachable backend is reported as 503. There is no local store.
    */
   backendReached: boolean;
   status?: number;
@@ -76,10 +69,11 @@ async function registerViaNestJS(input: {
   name: string;
   password: string;
 }): Promise<RegisterBackendResult> {
-  if (!NESTJS_URL) return { ok: false, backendReached: false };
+  const base = nestUrl();
+  if (!base) return { ok: false, backendReached: false };
   const [firstName, ...rest] = input.name.split(" ");
   try {
-    const res = await fetch(`${NESTJS_URL}/auth/register`, {
+    const res = await fetch(`${base}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -87,7 +81,8 @@ async function registerViaNestJS(input: {
         lastName: rest.join(" ") || input.username,
         email: input.email,
         password: input.password,
-        role: "CUSTOMER",
+        // No `role`: the backend's RegisterDto forbids it (forbidNonWhitelisted)
+        // and always creates a CUSTOMER. Sending it makes every sign-up a 400.
       }),
       signal: AbortSignal.timeout(4_000),
       cache: "no-store",
@@ -198,9 +193,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // The backend answered — its word is final. Rejecting a duplicate account in
-  // the authoritative store while also creating one locally would be worse than
-  // useless; it would resurface a user the backend had refused.
+  // The backend answered — its word is final.
   if (result.backendReached) {
     const status = result.status ?? 502;
     if (status === 409) {
@@ -209,36 +202,19 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
+    if (status === 429) {
+      return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
+    }
     if (status >= 400 && status < 500) {
       return NextResponse.json({ error: "Registration failed" }, { status });
     }
     return NextResponse.json({ error: "Registration failed" }, { status: 502 });
   }
 
-  // Backend unreachable. The local fallback exists so the app works before the
-  // backend is deployed; in production it is a separate, weaker source of truth
-  // and stays off unless a deployment explicitly opts back in.
-  if (!localAuthAllowed()) {
-    return NextResponse.json(
-      { error: "Registration is temporarily unavailable. Please try again later." },
-      { status: 503 },
-    );
-  }
-
-  // 2) Local fallback (bcrypt-hashed, role CUSTOMER)
-  try {
-    const user = await createUser(input);
-    const token = await signSession({ ...user });
-    return applySessionCookies(
-      NextResponse.json({ user, source: "local" }, { status: 201 }),
-      token,
-      user.role,
-    );
-  } catch (err) {
-    if (err instanceof DuplicateUserError) {
-      return NextResponse.json({ error: err.message }, { status: 409 });
-    }
-    console.error("[auth/register]", err);
-    return NextResponse.json({ error: "Registration failed" }, { status: 500 });
-  }
+  // Backend unreachable. NestJS is the only identity store, so there is nothing
+  // safe to fall back to.
+  return NextResponse.json(
+    { error: "Registration is temporarily unavailable. Please try again later." },
+    { status: 503 },
+  );
 }

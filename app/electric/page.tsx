@@ -19,30 +19,13 @@ import {
   Zap,
 } from "lucide-react";
 
-import { getVehicles, resolveImage } from "@/app/lib/nest-public";
+import { getNewCars, getVehicles, resolveImage } from "@/app/lib/nest-public";
+import type { NestNewCar } from "@/app/lib/nest-public";
+import EmptyState from "@/app/components/ui/EmptyState";
 
 /* -------------------------------------------------------------------------- */
 /*                                   DATA                                     */
 /* -------------------------------------------------------------------------- */
-
-const stats = [
-  {
-    value: "120+",
-    label: "Inspection checkpoints",
-  },
-  {
-    value: "94%",
-    label: "Typical battery health",
-  },
-  {
-    value: "7 Days",
-    label: "Easy return window",
-  },
-  {
-    value: "24/7",
-    label: "Buyer support",
-  },
-];
 
 const perks = [
   {
@@ -53,9 +36,9 @@ const perks = [
   },
   {
     icon: BatteryFull,
-    title: "Battery Health Verified",
+    title: "Know the Battery",
     description:
-      "Understand battery condition, range retention and charging performance before you buy.",
+      "Ask for battery condition, range retention and charging details before you buy.",
   },
   {
     icon: IndianRupee,
@@ -73,19 +56,9 @@ const perks = [
 
 const comparisonRows = [
   {
-    label: "Running cost / km",
-    ev: "≈ ₹1.5",
-    petrol: "≈ ₹7+",
-  },
-  {
     label: "Annual maintenance",
     ev: "Lower",
     petrol: "Higher",
-  },
-  {
-    label: "20,000 km energy cost",
-    ev: "≈ ₹9,000",
-    petrol: "≈ ₹36,000",
   },
   {
     label: "Tailpipe emissions",
@@ -140,16 +113,16 @@ function VehicleVisual({
             <div className="absolute right-3 top-8 h-3 w-6 rounded-full bg-emerald-300 shadow-lg shadow-emerald-300/70" />
 
             {/* Front detail */}
-            <div className="absolute bottom-4 right-6 h-2 w-12 rounded-full bg-[#141a21]0" />
+            <div className="absolute bottom-4 right-6 h-2 w-12 rounded-full bg-slate-700" />
 
             {/* Wheels */}
-            <div className="absolute -bottom-5 left-8 h-11 w-11 rounded-full border-4 border-slate-900 bg-[#141a21]0" />
-            <div className="absolute -bottom-5 right-8 h-11 w-11 rounded-full border-4 border-slate-900 bg-[#141a21]0" />
+            <div className="absolute -bottom-5 left-8 h-11 w-11 rounded-full border-4 border-slate-900 bg-slate-700" />
+            <div className="absolute -bottom-5 right-8 h-11 w-11 rounded-full border-4 border-slate-900 bg-slate-700" />
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-4 text-xs font-semibold text-slate-400">
+      <div className="absolute bottom-3 left-4 text-xs font-semibold text-slate-200">
         {brand} {model}
       </div>
     </div>
@@ -204,16 +177,49 @@ async function fetchElectricCars(): Promise<
   }
 }
 
+/**
+ * Live EV market figures. Every number shown in the stats row comes from the
+ * backend; a tile is hidden when its real value is zero, and the whole row is
+ * hidden when there is nothing true to say.
+ */
+async function fetchElectricMarket(): Promise<{
+  stats: { value: string; label: string }[];
+  spec: NestNewCar | null;
+}> {
+  const [used, rawNew] = await Promise.all([
+    getVehicles({ fuel: "ELECTRIC", limit: 100 }).catch(() => null),
+    getNewCars({ electric: "true" }).catch(() => null),
+  ]);
+  const newCars: NestNewCar[] = Array.isArray(rawNew) ? rawNew : rawNew?.cars ?? [];
+  const usedItems = used?.items ?? [];
+  const brands = new Set<string>();
+  usedItems.forEach((v) => v.brand?.name && brands.add(v.brand.name));
+  newCars.forEach((c) => c.brandName && brands.add(c.brandName));
+  const cities = new Set(usedItems.map((v) => v.city).filter(Boolean));
+  const candidates = [
+    { n: used?.meta?.total ?? 0, label: "Pre-owned EVs listed" },
+    { n: newCars.length, label: "New EV models" },
+    { n: brands.size, label: "EV brands" },
+    { n: cities.size, label: cities.size === 1 ? "City with EV listings" : "Cities with EV listings" },
+  ];
+  return {
+    stats: candidates.filter((c) => c.n > 0).map((c) => ({ value: String(c.n), label: c.label })),
+    spec: newCars.find((c) => c.batteryCapacityKwh || c.claimedRangeKm) ?? null,
+  };
+}
+
 export default async function ElectricPage() {
-  const featuredCars = await fetchElectricCars();
+  const [featuredCars, market] = await Promise.all([fetchElectricCars(), fetchElectricMarket()]);
+  const { stats, spec } = market;
+  const heroCar = featuredCars[0] ?? null;
   return (
-    <div className="bg-glass-scene min-h-screen flex flex-col font-sans text-white">
+    <div className="bg-glass-scene min-h-screen flex flex-col font-sans text-content">
 
       {/* ------------------------------------------------------------------ */}
       {/* HERO                                                               */}
       {/* ------------------------------------------------------------------ */}
 
-      <main className="flex-1">
+      <div className="flex-1">
         <section
           className="relative overflow-hidden"
           aria-labelledby="electric-hero-title"
@@ -237,26 +243,25 @@ export default async function ElectricPage() {
 
                 <h1
                   id="electric-hero-title"
-                  className="mx-auto mt-6 max-w-3xl text-5xl font-extrabold leading-[1.03] tracking-tight text-white sm:text-6xl lg:mx-0 lg:text-7xl animate-rise rise-delay-1"
+                  className="mx-auto mt-6 max-w-3xl text-5xl font-extrabold leading-[1.03] tracking-tight text-content sm:text-6xl lg:mx-0 lg:text-7xl animate-rise rise-delay-1"
                 >
                   Buy a certified{" "}
-                  <span className="bg-gradient-to-r from-[#FFC700] to-yellow-500 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 bg-clip-text text-transparent">
                     electric car
                   </span>{" "}
                   with confidence.
                 </h1>
 
-                <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400 lg:mx-0 animate-rise rise-delay-2">
-                  Verified battery health, transparent pricing and doorstep
-                  delivery. Find a pre-owned EV that fits your lifestyle and
-                  budget.
+                <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-content-muted lg:mx-0 animate-rise rise-delay-2">
+                  Transparent pricing and clear vehicle details. Find an EV that
+                  fits your lifestyle and budget.
                 </p>
 
                 {/* CTA */}
                 <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
                   <Link
                     href="/cars?fuel=electric"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-7 py-4 font-semibold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-7 py-4 font-semibold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl"
                   >
                     Explore EVs
                     <ArrowUpRight size={18} aria-hidden="true" />
@@ -264,7 +269,7 @@ export default async function ElectricPage() {
 
                   <Link
                     href="/cars"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl glass-subtle px-7 py-4 font-semibold text-slate-200 transition-all hover:bg-white/[0.07] backdrop-blur-md"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl glass-subtle px-7 py-4 font-semibold text-content transition-all hover:bg-card"
                   >
                     View All Cars
                     <ArrowRight size={18} aria-hidden="true" />
@@ -274,14 +279,14 @@ export default async function ElectricPage() {
                 {/* Trust points */}
                 <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
                   {[
-                    "120+ Point Inspection",
-                    "Battery Health Report",
+                    "Book an inspection",
+                    "Transparent pricing",
                     "Warranty Options",
                     "Doorstep Delivery",
                   ].map((item) => (
                     <span
                       key={item}
-                      className="inline-flex items-center gap-2 rounded-full glass-subtle px-3.5 py-2 text-xs font-medium text-slate-400"
+                      className="inline-flex items-center gap-2 rounded-full glass-subtle px-3.5 py-2 text-xs font-medium text-content-muted"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       {item}
@@ -290,109 +295,131 @@ export default async function ElectricPage() {
                 </div>
               </div>
 
-              {/* Hero vehicle showcase */}
+              {/* Hero vehicle showcase — real inventory only; never invented figures. */}
               <div className="relative">
-                <div className="glass-strong relative overflow-hidden rounded-[2rem] p-4 shadow-2xl shadow-black/50">
-                  <div className="absolute right-6 top-6 z-10 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 text-xs font-bold text-emerald-700 shadow-sm backdrop-blur">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    Battery Verified
+                {heroCar ? (
+                  <div className="glass-strong relative overflow-hidden rounded-[2rem] p-4 shadow-2xl shadow-black/15">
+                    {heroCar.isCertified && (
+                      <div className="absolute right-6 top-6 z-10 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 text-xs font-bold text-emerald-700 shadow-sm backdrop-blur">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        Certified
+                      </div>
+                    )}
+
+                    {heroCar.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={heroCar.image}
+                        alt={`${heroCar.brand} ${heroCar.model}`}
+                        className="h-52 w-full rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <VehicleVisual
+                        brand={heroCar.brand}
+                        model={heroCar.model}
+                        gradient="from-[#1d232b] via-[#161b21] to-sky-50"
+                      />
+                    )}
+
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                            Featured EV
+                          </p>
+                          <h2 className="mt-1 text-2xl font-extrabold text-content">
+                            {heroCar.brand} {heroCar.model}
+                          </h2>
+                          <p className="mt-1 text-sm text-content-muted">
+                            {heroCar.year}
+                            {heroCar.variant ? ` • ${heroCar.variant}` : ""}
+                          </p>
+                        </div>
+
+                        <p className="text-xl font-extrabold text-content">
+                          ₹{heroCar.price.toLocaleString("en-IN")}
+                        </p>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl bg-surface-strong px-3 py-3 text-center">
+                          <Gauge size={17} className="mx-auto text-content-muted" aria-hidden="true" />
+                          <p className="mt-1 text-sm font-bold text-content">
+                            {heroCar.mileage.toLocaleString("en-IN")} km
+                          </p>
+                          <p className="text-[11px] text-content-muted">Driven</p>
+                        </div>
+
+                        <div className="rounded-xl bg-surface-strong px-3 py-3 text-center">
+                          <MapPin size={17} className="mx-auto text-content-muted" aria-hidden="true" />
+                          <p className="mt-1 text-sm font-bold text-content">
+                            {heroCar.city || "—"}
+                          </p>
+                          <p className="text-[11px] text-content-muted">Location</p>
+                        </div>
+                      </div>
+
+                      <Link
+                        href={`/cars/${heroCar.id}`}
+                        className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink-800"
+                      >
+                        View Vehicle
+                        <ChevronRight size={16} aria-hidden="true" />
+                      </Link>
+                    </div>
                   </div>
-
-                  <VehicleVisual
-                    brand="Tata"
-                    model="Nexon EV"
-                    gradient="from-[#1d232b] via-[#161b21] to-sky-50"
-                  />
-
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                          Featured EV
-                        </p>
-                        <h2 className="mt-1 text-2xl font-extrabold text-white">
-                          Tata Nexon EV
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-400">
-                          2024 • Fearless+ • Automatic
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-xl font-extrabold text-white">
-                          ₹14.25 L
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          EMI from ₹23,499/mo
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 grid grid-cols-3 gap-2">
-                      <div className="rounded-xl bg-emerald-50 px-3 py-3 text-center">
-                        <BatteryFull
-                          size={17}
-                          className="mx-auto text-emerald-400"
-                        />
-                        <p className="mt-1 text-sm font-bold text-emerald-700">
-                          94%
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          Battery
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl bg-[#141a21] px-3 py-3 text-center">
-                        <Gauge
-                          size={17}
-                          className="mx-auto text-slate-400"
-                        />
-                        <p className="mt-1 text-sm font-bold text-slate-200">
-                          421 km
-                        </p>
-                        <p className="text-[10px] text-slate-400">Range</p>
-                      </div>
-
-                      <div className="rounded-xl bg-[#141a21] px-3 py-3 text-center">
-                        <MapPin
-                          size={17}
-                          className="mx-auto text-slate-400"
-                        />
-                        <p className="mt-1 text-sm font-bold text-slate-200">
-                          Delhi
-                        </p>
-                        <p className="text-[10px] text-slate-400">Location</p>
-                      </div>
-                    </div>
-
+                ) : (
+                  <div className="glass-strong relative overflow-hidden rounded-[2rem] p-8">
+                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                      <BatteryCharging size={24} aria-hidden="true" />
+                    </span>
+                    <h2 className="mt-5 text-2xl font-extrabold text-content">
+                      Buy an EV with clear information
+                    </h2>
+                    <ul className="mt-5 space-y-3 text-sm font-medium text-content">
+                      {[
+                        "Transparent pricing on every listing",
+                        "Independent inspection you can book",
+                        "Finance options for your purchase",
+                      ].map((item) => (
+                        <li key={item} className="flex items-center gap-3">
+                          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                            <Check size={14} aria-hidden="true" />
+                          </span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
                     <Link
-                      href="/cars"
-                      className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                      href="/cars?fuel=electric"
+                      className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-ink-800"
                     >
-                      View Vehicle
-                      <ChevronRight size={16} />
+                      Browse electric cars
+                      <ChevronRight size={16} aria-hidden="true" />
                     </Link>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
             {/* Stats */}
-            <div className="mt-14 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stats.length > 0 && (
+            <div className="mt-14 flex flex-wrap justify-center gap-3">
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="glass rounded-2xl px-5 py-5 text-center"
+                  className="glass min-w-[10rem] flex-1 rounded-2xl px-5 py-5 text-center sm:max-w-[16rem]"
                 >
-                  <p className="text-2xl font-extrabold text-emerald-400 sm:text-3xl">
+                  <p className="text-2xl font-extrabold text-emerald-700 sm:text-3xl">
                     {stat.value}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+                  <p className="mt-1 text-xs text-content-muted sm:text-sm">
                     {stat.label}
                   </p>
                 </div>
               ))}
             </div>
+            )}
           </div>
         </section>
 
@@ -406,30 +433,30 @@ export default async function ElectricPage() {
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
                 Find your EV
               </p>
-              <h2 className="mt-1 text-2xl font-bold text-white">
+              <h2 className="mt-1 text-2xl font-bold text-content">
                 What are you looking for?
               </h2>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr_1fr_1fr_auto]">
               {/* Search */}
-              <div className="flex items-center gap-3 rounded-xl bg-white/[0.07] backdrop-blur-md px-4 py-3.5 ring-1 ring-white/10">
+              <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-3.5 ring-1 ring-line">
                 <Search
                   size={19}
-                  className="shrink-0 text-slate-400"
+                  className="shrink-0 text-content-muted"
                   aria-hidden="true"
                 />
                 <input
                   type="text"
                   placeholder="Search brand or model"
                   aria-label="Search brand or model"
-                  className="w-full bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent text-sm text-content outline-none placeholder:text-content-faint"
                 />
               </div>
 
               <select
                 aria-label="Budget"
-                className="rounded-xl bg-white/[0.07] backdrop-blur-md px-4 py-3.5 text-sm font-medium text-slate-200 outline-none ring-1 ring-white/10"
+                className="rounded-xl bg-card px-4 py-3.5 text-sm font-medium text-content outline-none ring-1 ring-line"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -443,7 +470,7 @@ export default async function ElectricPage() {
 
               <select
                 aria-label="Range"
-                className="rounded-xl bg-white/[0.07] backdrop-blur-md px-4 py-3.5 text-sm font-medium text-slate-200 outline-none ring-1 ring-white/10"
+                className="rounded-xl bg-card px-4 py-3.5 text-sm font-medium text-content outline-none ring-1 ring-line"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -457,7 +484,7 @@ export default async function ElectricPage() {
 
               <select
                 aria-label="Body type"
-                className="rounded-xl bg-white/[0.07] backdrop-blur-md px-4 py-3.5 text-sm font-medium text-slate-200 outline-none ring-1 ring-white/10"
+                className="rounded-xl bg-card px-4 py-3.5 text-sm font-medium text-content outline-none ring-1 ring-line"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -471,7 +498,7 @@ export default async function ElectricPage() {
 
               <Link
                 href="/cars?fuel=electric"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-emerald-700"
+                className="btn btn-primary gap-2 px-6 py-3.5 text-sm font-bold"
               >
                 Search
                 <ArrowRight size={17} />
@@ -495,19 +522,19 @@ export default async function ElectricPage() {
               </span>
               <h2
                 id="featured-ev-title"
-                className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl"
+                className="mt-2 text-3xl font-extrabold tracking-tight text-content sm:text-4xl"
               >
                 Popular EVs ready for delivery
               </h2>
-              <p className="mt-3 max-w-2xl text-slate-400">
-                Certified pre-owned electric vehicles with transparent
-                condition reports and verified battery health.
+              <p className="mt-3 max-w-2xl text-content-muted">
+                Electric vehicles listed on Progressive AutoHub, with
+                transparent pricing and full vehicle details.
               </p>
             </div>
 
             <Link
               href="/cars?fuel=electric"
-              className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-800"
+              className="inline-flex min-h-6 items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-800"
             >
               View all EVs
               <ArrowRight size={17} />
@@ -515,33 +542,23 @@ export default async function ElectricPage() {
           </div>
 
           {featuredCars.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-line bg-card px-6 py-16 text-center md:col-span-2 lg:col-span-3">
-              <BatteryFull
-                size={36}
-                className="mx-auto mb-3 text-content-faint"
-                aria-hidden="true"
-              />
-              <p className="text-base font-bold text-content">
-                No electric vehicles in stock right now
-              </p>
-              <p className="mx-auto mt-2 max-w-md text-sm text-content-muted">
-                We only list what is actually in our inventory. Browse all
-                vehicles, or check back as new EVs arrive.
-              </p>
-              <Link
-                href="/cars"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
-              >
-                Browse all cars
-                <ArrowRight size={16} />
-              </Link>
-            </div>
+            <EmptyState
+              icon={BatteryFull}
+              title="No electric vehicles in stock right now"
+              description="We only list what is actually in our inventory. Browse all vehicles, or check back as new EVs arrive."
+              action={
+                <Link href="/cars" className="btn btn-primary gap-2">
+                  Browse all cars
+                  <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+              }
+            />
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {featuredCars.map((car) => (
                 <article
                   key={car.id}
-                  className="glass-strong group overflow-hidden rounded-3xl p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50"
+                  className="glass-strong group overflow-hidden rounded-3xl p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/15"
                 >
                   <div className="relative">
                     {car.image ? (
@@ -555,7 +572,7 @@ export default async function ElectricPage() {
                       <VehicleVisual
                         brand={car.brand}
                         model={car.model}
-                        gradient="from-[#121212] via-[#141a21] to-[#0b0e12]"
+                        gradient="from-ink-950 via-ink-900 to-ink-800"
                       />
                     )}
 
@@ -570,32 +587,32 @@ export default async function ElectricPage() {
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-lg font-bold text-white">
+                        <h3 className="text-lg font-bold text-content">
                           {car.brand} {car.model}
                         </h3>
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-content-muted">
                           {car.year}
                           {car.variant ? ` · ${car.variant}` : ""}
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <p className="text-lg font-extrabold text-white">
+                        <p className="text-lg font-extrabold text-content">
                           ₹{car.price.toLocaleString("en-IN")}
                         </p>
                       </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg bg-[#141a21] px-3 py-2 text-slate-400">
+                      <div className="rounded-lg bg-surface-strong px-3 py-2 text-content-muted">
                         {car.mileage.toLocaleString("en-IN")} km
                       </div>
-                      <div className="rounded-lg bg-[#141a21] px-3 py-2 text-slate-400">
+                      <div className="rounded-lg bg-surface-strong px-3 py-2 text-content-muted">
                         Electric
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+                    <div className="mt-3 flex items-center justify-between text-xs text-content-muted">
                       <span className="flex items-center gap-1.5">
                         <MapPin size={13} />
                         {car.city || "—"}
@@ -604,7 +621,7 @@ export default async function ElectricPage() {
 
                     <Link
                       href={`/cars/${car.id}`}
-                      className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition group-hover:bg-emerald-600"
+                      className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-ink-900 px-5 py-3 text-sm font-semibold text-white transition group-hover:bg-[hsl(var(--color-primary))] group-hover:text-[hsl(var(--color-primary-foreground))]"
                     >
                       View Details
                       <ArrowUpRight size={16} />
@@ -627,17 +644,17 @@ export default async function ElectricPage() {
           <div className="mx-auto w-full max-w-7xl px-6 lg:px-12">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <span className="text-xs font-bold uppercase tracking-widest text-emerald-700">
-                Why GreenDrive
+                Why Progressive AutoHub
               </span>
 
               <h2
                 id="why-title"
-                className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl"
+                className="mt-2 text-3xl font-extrabold tracking-tight text-content sm:text-4xl"
               >
                 Buying an EV shouldn&apos;t involve guesswork.
               </h2>
 
-              <p className="mt-4 text-slate-400">
+              <p className="mt-4 text-content-muted">
                 We make the important parts of buying a pre-owned EV easier to
                 understand.
               </p>
@@ -649,15 +666,15 @@ export default async function ElectricPage() {
                   key={perk.title}
                   className="glass-strong rounded-2xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
-                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFC700] to-yellow-500 text-[#15130a] shadow-lg shadow-amber-500/25">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-500 text-[#15130a] shadow-lg shadow-amber-500/25">
                     <perk.icon size={22} aria-hidden="true" />
                   </span>
 
-                  <h3 className="mt-5 text-lg font-bold text-white">
+                  <h3 className="mt-5 text-lg font-bold text-content">
                     {perk.title}
                   </h3>
 
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  <p className="mt-2 text-sm leading-relaxed text-content-muted">
                     {perk.description}
                   </p>
                 </div>
@@ -684,29 +701,29 @@ export default async function ElectricPage() {
 
                 <h2
                   id="battery-title"
-                  className="mt-6 text-3xl font-extrabold tracking-tight text-white sm:text-4xl"
+                  className="mt-6 text-3xl font-extrabold tracking-tight text-content sm:text-4xl"
                 >
                   Know what&apos;s under the hood.
                 </h2>
 
-                <p className="mt-5 text-lg leading-relaxed text-slate-400">
+                <p className="mt-5 text-lg leading-relaxed text-content-muted">
                   Battery condition is one of the most important factors when
-                  buying a pre-owned EV. GreenDrive puts battery information
-                  front and centre.
+                  buying a pre-owned EV. Here is what to ask about and check
+                  before you decide.
                 </p>
 
                 <div className="mt-8 space-y-4">
                   {[
                     "Battery health percentage",
-                    "Estimated range retention",
-                    "Charging performance",
-                    "Warranty and protection information",
+                    "Real-world range compared with the claimed range",
+                    "Charging speed and charger type",
+                    "Battery warranty and what it covers",
                   ].map((item) => (
                     <div
                       key={item}
-                      className="flex items-center gap-3 text-sm font-semibold text-slate-200"
+                      className="flex items-center gap-3 text-sm font-semibold text-content"
                     >
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-400">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                         <Check size={14} />
                       </span>
                       {item}
@@ -715,81 +732,59 @@ export default async function ElectricPage() {
                 </div>
 
                 <Link
-                  href="/electric"
-                  className="mt-8 inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800"
+                  href="/services/inspection"
+                  className="mt-8 inline-flex min-h-6 items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800"
                 >
-                  Learn about battery health
+                  Book an inspection
                   <ArrowRight size={17} />
                 </Link>
               </div>
 
-              {/* Battery dashboard */}
-              <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#FFC700]/5 via-[var(--color-card)] to-sky-500/5 p-8 sm:p-12">
-                <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-emerald-200/30 blur-3xl" />
-
-                <div className="relative w-full max-w-sm rounded-3xl bg-[var(--color-card)] p-6 shadow-2xl shadow-black/30">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        Battery report
-                      </p>
-                      <h3 className="mt-1 text-lg font-bold text-white">
-                        Tata Nexon EV
-                      </h3>
-                    </div>
-
-                    <BatteryFull
-                      size={28}
-                      className="text-emerald-500"
-                    />
-                  </div>
-
-                  <div className="mt-8 text-center">
-                    <div className="relative mx-auto flex h-40 w-40 items-center justify-center rounded-full border-[14px] border-emerald-500/20">
-                      <div className="absolute inset-0 rounded-full border-[14px] border-transparent border-t-emerald-500 border-r-emerald-500" />
-
+              {/* Real spec sheet — values come from the new-car record, never invented */}
+              {spec && (
+                <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-[hsl(var(--color-primary))]/5 via-[hsl(var(--color-card))] to-sky-500/5 p-8 sm:p-12">
+                  <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-emerald-200/30 blur-3xl" aria-hidden="true" />
+                  <div className="relative w-full max-w-sm rounded-3xl bg-[hsl(var(--color-card))] p-6 shadow-2xl shadow-black/15">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-4xl font-extrabold text-white">
-                          94%
+                        <p className="text-xs font-semibold uppercase tracking-wider text-content-muted">
+                          Battery &amp; charging
                         </p>
-                        <p className="mt-1 text-xs font-semibold text-emerald-400">
-                          Excellent
-                        </p>
+                        <h3 className="mt-1 text-lg font-bold text-content">
+                          {spec.brandName} {spec.model}
+                        </h3>
                       </div>
+                      <BatteryFull size={28} className="text-emerald-600" aria-hidden="true" />
                     </div>
-                  </div>
-
-                  <div className="mt-8 space-y-3">
-                    <div className="flex items-center justify-between rounded-xl bg-[#141a21] px-4 py-3">
-                      <span className="text-xs text-slate-400">
-                        Range retention
-                      </span>
-                      <span className="text-sm font-bold text-white">
-                        92%
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between rounded-xl bg-[#141a21] px-4 py-3">
-                      <span className="text-xs text-slate-400">
-                        Battery condition
-                      </span>
-                      <span className="text-sm font-bold text-emerald-400">
-                        Excellent
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between rounded-xl bg-[#141a21] px-4 py-3">
-                      <span className="text-xs text-slate-400">
-                        Report status
-                      </span>
-                      <span className="flex items-center gap-1 text-sm font-bold text-emerald-400">
-                        <Check size={14} />
-                        Verified
-                      </span>
-                    </div>
+                    <dl className="mt-6 space-y-3">
+                      {[
+                        spec.batteryCapacityKwh ? ["Battery capacity", `${spec.batteryCapacityKwh} kWh`] : null,
+                        spec.claimedRangeKm ? ["Claimed range", `${spec.claimedRangeKm} km`] : null,
+                        spec.chargingType ? ["Charging type", spec.chargingType] : null,
+                        spec.fastCharging != null ? ["Fast charging", spec.fastCharging ? "Supported" : "Not supported"] : null,
+                      ]
+                        .filter((r): r is string[] => r !== null)
+                        .map(([label, value]) => (
+                          <div key={label} className="flex items-center justify-between rounded-xl bg-surface-strong px-4 py-3">
+                            <dt className="text-xs text-content-muted">{label}</dt>
+                            <dd className="text-sm font-bold text-content">{value}</dd>
+                          </div>
+                        ))}
+                    </dl>
+                    <p className="mt-4 text-xs text-content-muted">
+                      Manufacturer-claimed figures for this model. Real-world range varies.
+                    </p>
+                    {spec.slug && (
+                      <Link
+                        href={`/new-cars/${encodeURIComponent(spec.brandName)}/${encodeURIComponent(spec.slug)}`}
+                        className="mt-3 inline-flex min-h-6 items-center gap-1.5 text-sm font-bold text-emerald-700 hover:text-emerald-800"
+                      >
+                        View this model <ArrowRight size={15} aria-hidden="true" />
+                      </Link>
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </section>
@@ -809,12 +804,12 @@ export default async function ElectricPage() {
 
             <h2
               id="comparison-title"
-              className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl"
+              className="mt-2 text-3xl font-extrabold tracking-tight text-content sm:text-4xl"
             >
               EV vs Petrol — side by side
             </h2>
 
-            <p className="mx-auto mt-4 max-w-2xl text-slate-400">
+            <p className="mx-auto mt-4 max-w-2xl text-content-muted">
               Lower running costs are one of the biggest reasons buyers are
               making the switch to electric.
             </p>
@@ -824,12 +819,12 @@ export default async function ElectricPage() {
             {/* EV */}
             <div className="glass-strong rounded-3xl border-t-4 border-emerald-500 p-7">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFC700] to-yellow-500 text-[#15130a]">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-500 text-[#15130a]">
                   <Zap size={20} />
                 </span>
 
                 <div>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="text-lg font-bold text-content">
                     Electric
                   </h3>
                   <p className="text-xs font-semibold text-emerald-700">
@@ -844,7 +839,7 @@ export default async function ElectricPage() {
                     key={row.label}
                     className="flex items-center justify-between gap-4 rounded-xl bg-emerald-50/70 px-4 py-3.5"
                   >
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-content-muted">
                       {row.label}
                     </span>
 
@@ -860,15 +855,15 @@ export default async function ElectricPage() {
             {/* Petrol */}
             <div className="glass rounded-3xl p-7">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#1d232b] text-slate-400">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-surface-strong text-content-muted">
                   <Gauge size={20} />
                 </span>
 
                 <div>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="text-lg font-bold text-content">
                     Petrol
                   </h3>
-                  <p className="text-xs font-semibold text-slate-400">
+                  <p className="text-xs font-semibold text-content-muted">
                     Conventional ownership
                   </p>
                 </div>
@@ -878,14 +873,14 @@ export default async function ElectricPage() {
                 {comparisonRows.map((row) => (
                   <div
                     key={row.label}
-                    className="flex items-center justify-between gap-4 rounded-xl bg-[#161b21]/70 px-4 py-3.5"
+                    className="flex items-center justify-between gap-4 rounded-xl bg-surface-strong px-4 py-3.5"
                   >
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-content-muted">
                       {row.label}
                     </span>
 
-                    <span className="flex items-center gap-2 text-sm font-semibold text-slate-400">
-                      <X size={15} className="text-slate-400" />
+                    <span className="flex items-center gap-2 text-sm font-semibold text-content-muted">
+                      <X size={15} className="text-content-muted" />
                       {row.petrol}
                     </span>
                   </div>
@@ -894,8 +889,8 @@ export default async function ElectricPage() {
             </div>
           </div>
 
-          <p className="mt-5 text-center text-xs text-slate-400">
-            *Illustrative estimates. Actual running costs vary by vehicle,
+          <p className="mt-5 text-center text-xs text-content-muted">
+            General comparison only. Actual running costs vary by vehicle,
             electricity tariff, fuel price, driving style and location.
           </p>
         </section>
@@ -908,9 +903,9 @@ export default async function ElectricPage() {
           className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12"
           aria-labelledby="cta-title"
         >
-          <div className="relative overflow-hidden rounded-[2rem] bg-slate-900 px-6 py-14 text-center sm:px-12">
+          <div className="relative overflow-hidden rounded-[2rem] bg-ink-900 px-6 py-14 text-center sm:px-12">
             <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-emerald-500/20 blur-3xl" />
-            <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-[#FFC700]/10 blur-3xl" />
+            <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-[hsl(var(--color-primary))]/10 blur-3xl" />
 
             <div className="relative">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-emerald-300">
@@ -926,14 +921,14 @@ export default async function ElectricPage() {
               </h2>
 
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-300">
-                Browse certified pre-owned EVs with verified battery health,
-                transparent pricing and flexible finance options.
+                Browse electric cars with transparent pricing and flexible
+                finance options.
               </p>
 
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
                   href="/cars?fuel=electric"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-emerald-500 px-8 py-4 font-bold text-[#15130a] shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5 hover:shadow-xl"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-emerald-500 px-8 py-4 font-bold text-[#15130a] shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5 hover:shadow-xl"
                 >
                   Browse Electric Cars
                   <ArrowUpRight size={18} />
@@ -950,7 +945,7 @@ export default async function ElectricPage() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
 
     </div>
   );

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { readSessionCookie, verifySession } from "@/app/lib/auth";
 import { backendFetch, isBackendUnreachable, BackendError } from "@/app/lib/backend";
-import { findUserById } from "@/app/server/users";
 
 export const runtime = "nodejs";
 
@@ -13,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // 1) NestJS backend (authoritative) — profile + role permissions
+  // NestJS is the only identity store — profile + role permissions
   if (session.token) {
     try {
       const profile = await backendFetch<{
@@ -56,17 +55,15 @@ export async function GET(request: Request) {
           { status: 401 },
         );
       }
-      // Backend unreachable → fall through to local store.
+      // Backend unreachable: say so. Do not guess a user from a local store,
+      // and do not report 401 (that would sign people out during a blip).
+      return NextResponse.json({ error: "Backend unreachable" }, { status: 503 });
     }
   }
 
-  // 2) Local fallback
-  const user = await findUserById(session.id);
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
-  return NextResponse.json({ user });
+  // A session without a backend token cannot be verified against the only
+  // identity store, so it is not a valid session.
+  return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 }
 
 type SessionRole = "CUSTOMER" | "DEALER" | "ADMIN" | "DEALER_EMPLOYEE";

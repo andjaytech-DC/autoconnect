@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Camera, ChevronRight, Fuel, Gauge } from "lucide-react";
 
 import { formatINRLakhs } from "@/app/lib/currency";
 import { cn } from "@/app/lib/utils";
+import { SafeImage } from "@/app/components/ui/SafeImage";
 
 export interface VehicleCardProps {
   id: number;
@@ -37,6 +37,13 @@ export interface VehicleCardProps {
  *  - Minimum 12px body text and 44px-touch friendly link surface for AA.
  *  - All prices via formatINRLakhs so ₹/lakh formatting stays consistent.
  */
+/** "PETROL" -> "Petrol"; short codes such as "DCT" or "CVT" stay upper-case. */
+function tidy(value: string): string {
+  const v = (value ?? "").trim();
+  if (v.length <= 4 && v === v.toUpperCase()) return v;
+  return v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+}
+
 export default function VehicleCard({
   id,
   name,
@@ -59,16 +66,15 @@ export default function VehicleCard({
     <Link
       href={to}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] shadow-[var(--shadow-subtle)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[hsl(var(--color-line-hover))] hover:shadow-[var(--shadow-elevated-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] focus-visible:ring-offset-2",
+        "group flex flex-col overflow-hidden bento-tile rounded-3xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] focus-visible:ring-offset-2",
         className,
       )}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-[hsl(var(--color-surface-strong))]">
         {image ? (
-          <Image
+          <SafeImage
             src={image}
             alt={`${brand} ${name}`}
-            fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             priority={priority}
             className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -83,12 +89,12 @@ export default function VehicleCard({
           </div>
         )}
         {badge && (
-          <span className="absolute left-3 top-3 rounded-md bg-[hsl(var(--color-primary))] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--color-primary-foreground))]">
+          <span className="absolute left-3 top-3 rounded-md bg-[hsl(var(--color-primary))] px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-[hsl(var(--color-primary-foreground))]">
             {badge}
           </span>
         )}
         {imageCount && imageCount > 1 && (
-          <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-[hsl(var(--color-ink-900)/0.75)] px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+          <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-ink-900/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
             <Camera size={10} aria-hidden="true" />
             {imageCount}
           </span>
@@ -109,10 +115,10 @@ export default function VehicleCard({
           </span>
           <span className="inline-flex items-center gap-1">
             <Fuel size={12} aria-hidden="true" />
-            {fuel}
+            {tidy(fuel)}
           </span>
-          <span>{transmission}</span>
         </div>
+        <p className="mb-3 mt-1 text-xs text-[hsl(var(--color-content-muted))]">{tidy(transmission)}</p>
         <div className="mt-auto flex items-center justify-between border-t border-[hsl(var(--color-line))] pt-3">
           <span className="text-base font-extrabold text-[hsl(var(--color-content))]">
             {formatINRLakhs(price)}

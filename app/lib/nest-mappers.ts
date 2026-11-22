@@ -1,6 +1,7 @@
 import type { NestDealer, NestVehicle } from "./nest-types";
 import type { UiDealer, UiVehicle } from "./nest-types";
 import { resolveImage } from "./nest-images";
+import { vehicleDisplayName } from "./vehicle-name";
 
 export function mapVehicle(v: NestVehicle): UiVehicle {
   // Prefer the ordered VehicleImage rows (they carry alt text, primary flag
@@ -20,7 +21,7 @@ export function mapVehicle(v: NestVehicle): UiVehicle {
   const images = galleryImages.length > 0 ? galleryImages : fallbackImages;
   return {
     id: v.id,
-    name: v.title,
+    name: vehicleDisplayName(v.brand?.name, v.title),
     brand: v.brand?.name ?? "—",
     brandId: v.brand?.id ?? v.brandId,
     year: v.year,
@@ -39,8 +40,11 @@ export function mapVehicle(v: NestVehicle): UiVehicle {
     description: v.description,
     isCertified: v.isCertified,
     createdAt: v.createdAt,
-    premium: v.premium,
-    premiumBadge: v.premiumBadge,
+    premium: v.isPremium ?? v.premium,
+    premiumBadge: v.premiumBadge ?? undefined,
+    engine: v.engine ?? null,
+    bodyType: v.bodyType ?? null,
+    premiumTags: (v.specialTags ?? []).map((t) => t.tag),
   };
 }
 
@@ -58,7 +62,11 @@ export function mapDealer(
     address: d.address ?? "",
     rating: 0,
     reviewCount: 0,
-    carsAvailable: Array.isArray(d.vehicles) ? d.vehicles.length : 0,
+    // The directory list sends a published-vehicle `_count`; the detail
+    // endpoint sends the vehicles themselves.
+    carsAvailable: Array.isArray(d.vehicles)
+      ? d.vehicles.length
+      : ((d as { _count?: { vehicles?: number } })._count?.vehicles ?? 0),
     // Contact details are PII released only to a signed-in session. Fails
     // closed: a caller that forgets the flag publishes nothing rather than
     // everything. `phone` is the showroom number, `email` is the dealer's

@@ -286,7 +286,7 @@ export default function VehicleTrustSection({ vehicleId }: { vehicleId: number }
           <button
             type="button"
             onClick={() => setReturnOpen(true)}
-            className="inline-flex items-center gap-2 text-sm font-medium text-content underline underline-offset-4 hover:text-[#B8912E]"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-content underline underline-offset-4 hover:text-[#B8912E]"
           >
             <Undo2 className="h-4 w-4" /> Request a return
           </button>
@@ -308,7 +308,7 @@ export default function VehicleTrustSection({ vehicleId }: { vehicleId: number }
                 value={returnReason}
                 onChange={(e) => setReturnReason(e.target.value)}
                 required
-                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-[#FFC700]/40"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]/40"
               >
                 <option value="">Select a reason</option>
                 <option value="Odometer reading did not match the listing">
@@ -338,7 +338,7 @@ export default function VehicleTrustSection({ vehicleId }: { vehicleId: number }
                 value={returnDetails}
                 onChange={(e) => setReturnDetails(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-[#FFC700]/40"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]/40"
               />
             </div>
             {returnError && (
@@ -351,7 +351,7 @@ export default function VehicleTrustSection({ vehicleId }: { vehicleId: number }
               <button
                 type="submit"
                 disabled={returnState === "sending" || !returnReason.trim()}
-                className="rounded-lg bg-[#FFC700] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFD84D] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-[hsl(var(--color-primary))] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFD84D] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {returnState === "sending" ? "Submitting..." : "Submit request"}
               </button>

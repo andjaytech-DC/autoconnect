@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/app/server/prisma";
-import { audit, clientIp } from "@/app/server/audit";
-import { requireAdmin } from "@/app/server/authz";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { requireAdminSession } from "@/app/server/authz";
+
+export const runtime = "nodejs";
 
 const createSchema = z.object({
   brandName: z.string().min(1).max(100),
@@ -18,7 +20,7 @@ const createSchema = z.object({
   engine: z.string().max(200).optional(),
   bodyType: z.string().max(50).optional(),
   features: z.array(z.string()).optional(),
-  imageUrl: z.string().url().max(500).optional().or(z.literal('')),
+  imageUrl: z.string().url().max(500).optional().or(z.literal("")),
   isElectric: z.boolean().optional(),
   batteryCapacityKwh: z.number().nonnegative().optional(),
   claimedRangeKm: z.number().int().nonnegative().optional(),
@@ -29,38 +31,37 @@ const createSchema = z.object({
 
 /** GET /api/admin/new-cars — list new cars (admin). */
 export async function GET(request: Request) {
-  const auth = await requireAdmin(request);
-  if (auth instanceof NextResponse) return auth;
+  const auth = await requireAdminSession(request);
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(request.url);
-  const brand = searchParams.get('brand');
-  const electric = searchParams.get('electric');
-
-  // Structural type rather than Prisma.NewCarWhereInput: this app's local
-  // Prisma client predates that namespace export, and the shape is all we need.
-  const where: {
-    brandName?: { contains: string; mode: "insensitive" };
-    isElectric?: boolean;
-  } = {};
-  if (brand) where.brandName = { contains: brand, mode: 'insensitive' };
-  if (electric !== null) where.isElectric = electric === 'true';
+  const query = new URLSearchParams();
+  const brand = searchParams.get("brand");
+  const electric = searchParams.get("electric");
+  if (brand) query.set("brand", brand);
+  if (electric === "true" || electric === "false") query.set("electric", electric);
 
   try {
-    const cars = await prisma.newCar.findMany({
-      where,
-      orderBy: [{ brandName: 'asc' }, { model: 'asc' }],
-    });
-    return NextResponse.json({ cars });
-  } catch (error) {
-    console.error("New cars list error:", error);
-    return NextResponse.json({ error: "Unable to fetch new cars" }, { status: 500 });
+    const data = await backendFetch<{ cars: unknown[] }>(
+      `/new-cars${query.toString() ? `?${query}` : ""}`,
+      { token: auth.session.token },
+    );
+    return NextResponse.json({ cars: data?.cars ?? [] });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
 }
 
 /** POST /api/admin/new-cars — create a new car (admin only). */
 export async function POST(request: Request) {
-  const auth = await requireAdmin(request);
-  if (auth instanceof NextResponse) return auth;
+  const auth = await requireAdminSession(request);
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
 
   let body: unknown;
   try {
@@ -68,48 +69,19 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
   }
 
-  const data = parsed.data;
-  const baseSlug = `${data.brandName} ${data.model} ${data.variant || ''}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-  const slug = data.slug || baseSlug;
-
-  const existing = await prisma.newCar.findUnique({ where: { slug } });
-  if (existing) {
-    return NextResponse.json({ error: "A new car with this slug already exists." }, { status: 409 });
-  }
-
   try {
-    const newCar = await prisma.newCar.create({
-      data: {
-        ...data,
-        variant: data.variant || '',
-        slug,
-        features: data.features || [],
-        imageUrl: data.imageUrl || null,
-        fuel: data.fuel as never,
-        transmission: data.transmission as never,
-      },
+    const created = await backendFetch("/new-cars", {
+      method: "POST",
+      token: auth.session.token,
+      body: parsed.data,
     });
-
-    await audit({
-      userId: auth.session.id,
-      action: "NEW_CAR_CREATE",
-      entity: "NewCar",
-      entityId: newCar.id,
-      ipAddress: clientIp(request),
-    });
-
-    return NextResponse.json({ data: newCar }, { status: 201 });
-  } catch (error) {
-    console.error("New car create error:", error);
-    return NextResponse.json({ error: "Unable to create new car" }, { status: 500 });
+    return NextResponse.json({ data: created }, { status: 201 });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
 }

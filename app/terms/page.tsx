@@ -29,7 +29,7 @@ const sections = [
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
 
       <section className="max-w-3xl mx-auto w-full px-6 py-20" aria-label="Terms and conditions">
         <h1 className="text-4xl font-extrabold tracking-tight mb-3">Terms &amp; Conditions</h1>

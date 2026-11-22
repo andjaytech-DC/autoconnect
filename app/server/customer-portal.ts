@@ -1,86 +1,70 @@
-import { prisma } from "@/app/server/prisma";
+import { backendFetch } from "@/app/lib/backend";
 
 /**
  * Customer-portal reads.
  *
- * The portal used to query `testDrive` and `financeApplication` with no `where`
- * at all, so every signed-in customer saw the site-wide totals — and each page
- * load pulled every applicant's PAN, employer name and monthly income into
- * memory to compute a count. `TestDrive` additionally had no owner column, so
- * there was nothing to scope on even if the query had asked.
+ * Everything on the portal is the caller's own data and it is read from NestJS
+ * with the caller's bearer token — the token is the only identity input, so
+ * there is no id, email or filter here that a client could vary to see another
+ * customer's records. (The portal used to query the whole `TestDrive` and
+ * `FinanceApplication` tables with no `where`, so every customer saw site-wide
+ * totals.) NestJS owns the scoping: `/test-drives/mine`, `/leads/mine`,
+ * `/finance/applications/count`.
  *
- * Both resources are now filtered by the caller's verified user id, which is
- * the only scoping input. A guest row (`userId IS NULL`) belongs to nobody and
- * is therefore never returned here. Kept as a separate, pure function so the
- * scoping can be asserted directly in tests without rendering a server
- * component.
+ * Kept as a separate function so the contract can be asserted without
+ * rendering a server component.
  */
 
 export interface PortalSession {
-  /** The signed session's `id` claim (a string, as stored in the JWT). */
-  id: string;
-  email: string;
+  /** The NestJS bearer token from the signed session. */
+  token?: string | null;
 }
 
 export interface CustomerPortalData {
   testDrives: Array<{
     id: number;
     vehicleId: number;
-    preferredDate: Date;
+    preferredDate: string;
     preferredTime: string;
     vehicle: { id: number; title: string } | null;
   }>;
   financeApplicationCount: number;
   leads: Array<{
     id: number;
-    vehicleId: number;
+    vehicleId: number | null;
     status: string;
     message: string | null;
-    createdAt: Date;
+    createdAt: string;
   }>;
+  /** True when any section could not be read, so the page can say so. */
+  unavailable: boolean;
 }
 
-export const PORTAL_ROW_LIMIT = 20;
-
-/**
- * Load the portal payload for one customer. Returns empty collections (never a
- * global scan) when the id claim is not a usable integer.
- */
 export async function loadCustomerPortalData(
   session: PortalSession,
 ): Promise<CustomerPortalData> {
-  const userId = Number.parseInt(session.id, 10);
-  if (!Number.isInteger(userId)) {
-    return { testDrives: [], financeApplicationCount: 0, leads: [] };
-  }
+  const empty: CustomerPortalData = {
+    testDrives: [],
+    financeApplicationCount: 0,
+    leads: [],
+    unavailable: false,
+  };
+  // Without a backend token there is nothing to scope on — show nothing, never
+  // everything.
+  if (!session.token) return { ...empty, unavailable: true };
+  const token = session.token;
 
-  const [testDrives, financeApplicationCount, leads] = await Promise.all([
-    prisma.testDrive.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        vehicleId: true,
-        preferredDate: true,
-        preferredTime: true,
-        vehicle: { select: { id: true, title: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: PORTAL_ROW_LIMIT,
-    }),
-    prisma.financeApplication.count({ where: { userId } }),
-    prisma.lead.findMany({
-      where: { customerEmail: session.email },
-      select: {
-        id: true,
-        vehicleId: true,
-        status: true,
-        message: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: PORTAL_ROW_LIMIT,
-    }),
+  const [drives, finance, leads] = await Promise.allSettled([
+    backendFetch<CustomerPortalData["testDrives"]>("/test-drives/mine", { token }),
+    backendFetch<{ count: number }>("/finance/applications/count", { token }),
+    backendFetch<CustomerPortalData["leads"]>("/leads/mine", { token }),
   ]);
 
-  return { testDrives, financeApplicationCount, leads };
+  return {
+    testDrives: drives.status === "fulfilled" ? (drives.value ?? []) : [],
+    financeApplicationCount:
+      finance.status === "fulfilled" ? (finance.value?.count ?? 0) : 0,
+    leads: leads.status === "fulfilled" ? (leads.value ?? []) : [],
+    unavailable: [drives, finance, leads].some((r) => r.status === "rejected"),
+  };
 }

@@ -37,21 +37,21 @@ const values = [
 
 export default function AboutPage() {
   return (
-    <div className="bg-glass-scene flex flex-col font-sans text-white">
+    <div className="bg-glass-scene flex flex-col font-sans text-content">
 
       {/* Hero */}
-      <section className="text-white">
+      <section className="text-content">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24 text-center">
-          <span className="inline-block bg-emerald-500/15 border border-[#FFC700]/30 text-[#FFC700] text-xs font-semibold uppercase tracking-wider px-4 py-2 rounded-full mb-6">
+          <span className="inline-block bg-[hsl(var(--color-primary)/0.15)] border border-[hsl(var(--color-primary))]/40 text-primary-strong text-xs font-semibold uppercase tracking-wider px-4 py-2 rounded-full mb-6">
             About Us
           </span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight max-w-3xl mx-auto leading-tight">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight max-w-3xl mx-auto leading-tight text-content">
             India&apos;s trusted marketplace for{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFC700] to-[#3b82f6]">
+            <span className="text-primary-strong">
               certified pre-owned cars
             </span>
           </h1>
-          <p className="mt-6 text-lg text-slate-300 max-w-2xl mx-auto">
+          <p className="mt-6 text-lg text-content-muted max-w-2xl mx-auto">
             Progressive AutoHub makes buying, selling and financing a used car safe,
             simple and transparent — so it never feels like a gamble.
           </p>

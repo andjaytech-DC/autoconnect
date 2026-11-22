@@ -35,11 +35,23 @@
   --color-info: hsl(var(--color-info));
   --color-whatsapp: hsl(var(--color-whatsapp));
   --color-whatsapp-foreground: hsl(var(--color-whatsapp-foreground));
-  /* Dark ink surfaces — raw hex tokens (no hsl() wrapper). */
-  --color-ink-950: #050608;
-  --color-ink-900: #080a0d;
-  --color-ink-800: #101318;
-  --color-ink-700: #161b22;
+  /* Royal navy ink surfaces — raw hex tokens (no hsl() wrapper). */
+  --color-ink-950: #060B1E;
+  --color-ink-900: #0A1128;
+  --color-ink-800: #101A3C;
+  --color-ink-700: #18254F;
+
+  /* Display serif (headings, prices) — Geist stays the UI/body face. */
+  --font-display: var(--font-playfair, "Playfair Display"), "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+
+  /* Semantic radii — pick by role, not by taste:
+       rounded-control  buttons, inputs, selects, small tiles   (0.625rem)
+       rounded-card     cards, list rows, dropdown panels       (0.875rem)
+       rounded-panel    hero panels, modals, large containers   (1.25rem)
+       rounded-full     pills, chips, avatars, badges-as-pills  */
+  --radius-control: var(--radius-xl);
+  --radius-card: var(--radius-2xl);
+  --radius-panel: var(--radius-3xl);
 
   --radius-token-sm: var(--radius-sm);
   --radius-token-md: var(--radius-md);
@@ -48,6 +60,40 @@
   --radius-token-2xl: var(--radius-2xl);
   --radius-token-3xl: var(--radius-3xl);
   --radius-token-full: var(--radius-full);
+}
+
+/* ────────────────────────────────────────────
+   Antique-gold scale
+   The codebase styles brand accents with Tailwind's amber-* / yellow-*
+   utilities. Re-pointing those two scales here retones every one of them
+   from bright signage-yellow to a deep, metallic royal gold, without
+   touching each component. Text-on-light uses 700+ (≥4.7:1 on parchment);
+   text-on-navy uses 300–400.
+   ──────────────────────────────────────────── */
+@theme {
+  --color-amber-50: #fbf7ea;
+  --color-amber-100: #f5ecce;
+  --color-amber-200: #ecdca6;
+  --color-amber-300: #e2c97f;
+  --color-amber-400: #d8b762;
+  --color-amber-500: #c9a24b;
+  --color-amber-600: #ab8434;
+  --color-amber-700: #8a6724;
+  --color-amber-800: #6b4f1b;
+  --color-amber-900: #4f3b15;
+  --color-amber-950: #2e220c;
+
+  --color-yellow-50: #fbf7ea;
+  --color-yellow-100: #f5ecce;
+  --color-yellow-200: #ecdca6;
+  --color-yellow-300: #e6cd84;
+  --color-yellow-400: #dcbb62;
+  --color-yellow-500: #cfa94f;
+  --color-yellow-600: #b48f3a;
+  --color-yellow-700: #8f6f27;
+  --color-yellow-800: #6e551d;
+  --color-yellow-900: #503f17;
+  --color-yellow-950: #2f2410;
 }
 
 /* ────────────────────────────────────────────
@@ -60,24 +106,24 @@
 :root {
   color-scheme: light;
 
-  /* ── Primary: Premium Gold #FFC700 ── */
-  --color-primary: 47 100% 50%;               /* #FFC700 brand gold */
-  --color-primary-hover: 44 100% 56%;         /* brighter hover */
-  --color-primary-active: 40 100% 45%;        /* pressed */
-  --color-primary-foreground: 48 60% 6%;      /* warm near-black ink on gold */
+  /* ── Primary: Antique Royal Gold #C9A24B ── */
+  --color-primary: 41 54% 54%;                /* #C9A24B antique gold */
+  --color-primary-hover: 42 62% 61%;          /* lighter, burnished hover */
+  --color-primary-active: 40 54% 45%;         /* pressed */
+  --color-primary-foreground: 228 62% 9%;     /* royal-navy ink on gold (≈9:1) */
   /* Accessible gold for text, icons and links on light backgrounds.
-     Gold on ivory is NOT AA-safe for text (≈1.9:1) — use amber-700. */
-  --color-primary-strong: 32 95% 29%;         /* #904F04 ≈6:1 on ivory, ≈5.5:1 on gold tint */
+     Gold on parchment is NOT AA-safe for text (≈2.3:1) — use this. */
+  --color-primary-strong: 40 72% 26%;         /* #725213 ≈6.7:1 on parchment */
 
-  /* ── Secondary: Deep Teal Accent ── */
-  --color-secondary: 180 40% 12%;
-  --color-secondary-hover: 180 40% 10%;
+  /* ── Secondary: Royal Navy ── */
+  --color-secondary: 228 62% 14%;
+  --color-secondary-hover: 228 62% 11%;
   --color-secondary-foreground: 0 0% 100%;
 
-  /* ── Accent: Electric Blue (informational) ── */
-  --color-accent: 217 91% 60%;
-  --color-accent-hover: 217 91% 52%;
-  --color-accent-hi: 217 91% 65%;
+  /* ── Accent: Royal Blue (informational) ── */
+  --color-accent: 226 70% 48%;
+  --color-accent-hover: 226 70% 41%;
+  --color-accent-hi: 226 75% 62%;
   --color-accent-foreground: 0 0% 100%;
 
   /* ── Status (AA-safe as text on white/ivory) ── */
@@ -100,45 +146,53 @@
   --color-telegram-foreground: 0 0% 100%;
 
   /* ── Surface / Background ── */
-  --color-bg: 45 33% 97%;                    /* #FAF9F6 warm ivory */
+  --color-bg: 43 42% 96%;                    /* #F8F5EC warm parchment */
   --color-surface: 0 0% 100%;                /* #FFFFFF white */
-  --color-surface-strong: 120 20% 96%;       /* #F2F5F3 subtle green-tinted */
+  --color-surface-strong: 42 32% 93%;        /* #F1EDE0 soft vellum */
+  /* Site footer — parchment, closed off by a gold hairline. */
+  --color-footer: 42 36% 92%;                /* #F0EBDC */
+  --color-footer-line: 40 30% 80%;           /* hairline on the footer */
 
   /* ── Card ── */
   --color-card: 0 0% 100%;                   /* #FFFFFF */
-  --color-card-hover: 45 20% 97%;            /* subtle warm hover */
+  --color-card-hover: 43 38% 97%;            /* subtle warm hover */
 
-  /* ── Text — deep charcoal (prompt brand direction) ── */
-  --color-content: 240 5% 11%;               /* #1B1B1F charcoal */
-  --color-content-muted: 240 4% 36%;         /* AA on white (≈7:1) */
-  --color-content-faint: 240 4% 45%;         /* AA on white (≈5:1) */
+  /* ── Text — deep navy-charcoal ── */
+  --color-content: 228 32% 12%;              /* #151A28 */
+  --color-content-muted: 228 14% 33%;        /* AA on white and parchment (≈7:1) */
+  --color-content-faint: 228 11% 41%;        /* AA on white (≈6:1) */
 
-  /* ── Border / Dividers ── */
-  --color-line: 220 14% 88%;
-  --color-line-hover: 220 12% 76%;
-  --color-divider: 220 14% 91%;
+  /* ── Border / Dividers — warm gilt hairlines ── */
+  --color-line: 40 22% 84%;
+  --color-line-hover: 40 28% 68%;
+  --color-divider: 40 22% 90%;
 
-  /* ── Focus ring — must stay ≥3:1 on ivory/white (WCAG 2.4.11/2.4.13).
-       Gold on ivory is only ≈1.5:1, so the ring is charcoal. ── */
-  --color-focus: 240 6% 14%;
+  /* ── Focus ring — must stay ≥3:1 on parchment/white (WCAG 2.4.11/2.4.13).
+       Gold on parchment is only ≈2:1, so the ring is royal navy. ── */
+  --color-focus: 228 58% 18%;
   --color-focus-width: 2px;
 
-  /* ── Dark ink surfaces (hex, used via bg-ink-* utilities) ── */
-  --color-ink-950: #050608;
-  --color-ink-900: #080a0d;
-  --color-ink-800: #101318;
-  --color-ink-700: #161b22;
+  /* ── Royal navy ink surfaces (hex, used via bg-ink-* utilities) ── */
+  --color-ink-950: #060B1E;
+  --color-ink-900: #0A1128;
+  --color-ink-800: #101A3C;
+  --color-ink-700: #18254F;
+
+  /* ── Gold metal — the one gradient used for primary actions/accents ── */
+  --gold-metal: linear-gradient(180deg, #E8CF84 0%, #C9A24B 46%, #A8832F 100%);
+  --gold-metal-hover: linear-gradient(180deg, #F0D993 0%, #D3AE57 46%, #B38E37 100%);
+  --gold-rule: linear-gradient(90deg, transparent, #C9A24B 20%, #E8CF84 50%, #C9A24B 80%, transparent);
 
   /* ── Blur / Glass ── */
   --blur-glass: 12px;
 
-  /* ── Border Radius ── */
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 2rem;
+  /* ── Border Radius — restrained, classic corners ── */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.875rem;
+  --radius-3xl: 1.25rem;
   --radius-full: 9999px;
 
   /* ── Typography — Geist is loaded by next/font in app/layout.tsx
@@ -153,17 +207,30 @@
   --tracking-wider: 0.05em;
 
   /* ── Shadow Palette ── */
-  --shadow-subtle: 0 1px 3px 0 hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.08);
-  --shadow-elevated: 0 4px 24px 0 hsl(0 0% 0% / 0.08);
-  --shadow-elevated-hover: 0 12px 40px 0 hsl(0 0% 0% / 0.12);
-  --shadow-inner: inset 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-  --shadow-glass: 0 8px 32px 0 hsl(0 0% 0% / 0.08);
-  --shadow-primary: 0 8px 28px 0 hsl(47 100% 50% / 0.25);
+  --shadow-subtle: 0 1px 2px 0 hsl(228 40% 12% / 0.06), 0 1px 1px -1px hsl(228 40% 12% / 0.05);
+  --shadow-elevated: 0 8px 28px -10px hsl(228 45% 12% / 0.16);
+  --shadow-elevated-hover: 0 20px 46px -14px hsl(228 50% 12% / 0.26);
+  --shadow-inner: inset 0 1px 2px 0 hsl(228 40% 12% / 0.06);
+  --shadow-glass: 0 8px 32px 0 hsl(228 45% 12% / 0.10);
+  --shadow-primary: 0 10px 28px -8px hsl(41 60% 38% / 0.50);
 
   /* ── Transitions ── */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 400ms cubic-bezier(0.25, 0.4, 0.25, 1);
+
+  /* ── Admin workspace ──
+     A calm, warm-neutral operations surface. These tokens are scoped to the
+     admin shell and deliberately reuse the marketplace brand/semantic tokens
+     rather than introducing a second palette. */
+  --admin-bg: 40 20% 97%;                     /* warm workspace grey */
+  --admin-surface: 0 0% 100%;
+  --admin-surface-muted: 40 18% 96%;
+  --admin-rail: 0 0% 100%;
+  --admin-shadow: 0 1px 2px hsl(30 12% 18% / 0.04), 0 10px 28px -18px hsl(30 12% 18% / 0.22);
+  --admin-shadow-hover: 0 2px 4px hsl(30 12% 18% / 0.05), 0 16px 34px -18px hsl(30 12% 18% / 0.26);
+  --admin-content-max: 1400px;
+  --admin-sidebar-width: 264px;
 }
 
 /* ────────────────────────────────────────────
@@ -201,6 +268,51 @@
     min-height: 100dvh;
   }
 
+  /* ── Range sliders ──
+     One look everywhere (EMI, insurance IDV, loan). Native tracks render as
+     near-black in Chromium next to the gold accent; this gives a light track,
+     a gold thumb with a navy ring, and a 28px-tall hit area for touch. */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 1.75rem;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: hsl(var(--color-line-hover));
+  }
+  input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: hsl(var(--color-line-hover));
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.375rem;
+    height: 1.375rem;
+    margin-top: calc((6px - 1.375rem) / 2);
+    border-radius: 9999px;
+    border: 2px solid hsl(var(--color-secondary));
+    background: var(--gold-metal);
+    box-shadow: var(--shadow-subtle);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 9999px;
+    border: 2px solid hsl(var(--color-secondary));
+    background: #C9A24B;
+    box-shadow: var(--shadow-subtle);
+  }
+  input[type="range"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
   /* ── Typography reset ── */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
@@ -208,6 +320,26 @@
     letter-spacing: var(--tracking-tight);
     line-height: 1.1;
     margin: 0;
+  }
+
+  /* Royal-classic display: headings h1–h3 set in the Playfair serif. Lining
+     figures keep prices and years aligned; the looser tracking suits a
+     high-contrast serif (the sans tracking would crowd it). */
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    font-variant-numeric: lining-nums;
+    font-feature-settings: "lnum" 1;
+    letter-spacing: -0.012em;
+    line-height: 1.14;
+    text-wrap: balance;
+  }
+
+  /* The admin workspace is a dense operations surface — it keeps the sans. */
+  .admin-shell :is(h1, h2, h3) {
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-tight);
+    line-height: 1.1;
+    font-feature-settings: normal;
   }
 
   p {
@@ -254,6 +386,24 @@
   @media (min-width: 1440px) { .container { max-width: 90rem; padding-right: 3rem; padding-left: 3rem; } }
   @media (min-width: 1540px) { .container { max-width: 96rem; padding-right: 3rem; padding-left: 3rem; } }
 
+  /* ── Page layout standard ──
+     .page-container  one content width (80rem) + one gutter ramp for every
+                      public page, so edges line up with the header and footer.
+     .section-y       one vertical rhythm between page sections.
+     Prefer these over ad-hoc `mx-auto max-w-7xl px-6 py-20` strings. */
+  .page-container {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) { .page-container { padding-inline: 1.5rem; } }
+  @media (min-width: 1024px) { .page-container { padding-inline: 2rem; } }
+
+  .section-y {
+    padding-block: clamp(2.5rem, 2rem + 3vw, 5rem);
+  }
+
   /* ── Premium Button ── */
   .btn {
     @apply inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-250 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-bg))];
@@ -269,10 +419,15 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 text-[hsl(var(--color-primary-foreground))] shadow-lg shadow-[hsl(var(--color-primary)/0.2)];
+    /* Burnished gold plate: metal gradient, a lit top edge and a darker rim. */
+    background-image: var(--gold-metal);
+    color: hsl(var(--color-primary-foreground));
+    border: 1px solid hsl(40 55% 38%);
+    box-shadow: inset 0 1px 0 hsl(46 80% 82% / 0.65), var(--shadow-primary);
   }
   .btn-primary:hover {
-    @apply from-yellow-400 to-amber-500 text-black shadow-xl shadow-[hsl(var(--color-primary)/0.3)];
+    background-image: var(--gold-metal-hover);
+    box-shadow: inset 0 1px 0 hsl(46 80% 86% / 0.75), 0 14px 34px -8px hsl(41 60% 38% / 0.6);
   }
   .btn-primary:active {
     @apply scale-[0.98];
@@ -296,7 +451,8 @@
   }
 
   .btn-outline {
-    @apply border-2 border-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-strong))];
+    @apply border border-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-strong))];
+    box-shadow: inset 0 0 0 1px hsl(var(--color-primary) / 0.25);
   }
   .btn-outline:hover {
     @apply bg-[hsl(var(--color-primary)/0.1)];
@@ -344,7 +500,7 @@
 
   /* ── Status badges ── */
   .badge {
-    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider;
   }
   .badge-gold {
     @apply bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))];
@@ -383,7 +539,58 @@
 
   /* ── Eyebrow label used above section titles ── */
   .eyebrow {
-    @apply text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--color-primary-strong))];
+    @apply inline-flex items-center gap-3 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-[hsl(var(--color-primary-strong))];
+  }
+  .eyebrow::before {
+    content: "";
+    width: 1.75rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.55;
+  }
+
+  /* ── Classic ornaments ── */
+  /* Hairline of gold that fades out at both ends. */
+  .gold-rule {
+    height: 1px;
+    border: 0;
+    background: var(--gold-rule);
+  }
+  /* Rule — gem — rule. Put <span class="ornament__gem"></span> inside. */
+  .ornament {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    color: hsl(var(--color-primary));
+  }
+  .ornament::before,
+  .ornament::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--gold-rule);
+  }
+  .ornament__gem {
+    width: 0.5rem;
+    height: 0.5rem;
+    transform: rotate(45deg);
+    background: var(--gold-metal);
+    box-shadow: 0 0 0 3px hsl(var(--color-primary) / 0.18);
+  }
+  /* Double-line "engraved" frame for hero panels and featured cards. */
+  .frame-royal {
+    position: relative;
+    box-shadow:
+      inset 0 0 0 1px hsl(var(--color-primary) / 0.55),
+      inset 0 0 0 6px hsl(var(--color-card)),
+      inset 0 0 0 7px hsl(var(--color-primary) / 0.35);
+  }
+  /* Gold-leaf text for use on navy surfaces only. */
+  .text-gold-metal {
+    background-image: linear-gradient(180deg, #f2dc97 0%, #d8b762 55%, #b8923f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   /* ── Form help + error text ── */
@@ -406,7 +613,9 @@
 
   /* ── Stat Numbers ── */
   .stat-number {
-    @apply text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight;
+    font-family: var(--font-display);
+    font-variant-numeric: lining-nums;
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
     color: hsl(var(--color-content));
   }
   .stat-label {
@@ -417,10 +626,110 @@
   /* ── Loading skeleton ── */
   .skeleton {
     @apply rounded-lg;
-    background: linear-gradient(90deg, hsl(220 14% 92%) 25%, hsl(220 14% 96%) 50%, hsl(220 14% 92%) 75%);
+    /* Warm tones taken from the parchment tokens, so placeholders sit naturally on the page. */
+    background: linear-gradient(90deg, hsl(var(--color-divider)) 25%, hsl(var(--color-surface-strong)) 50%, hsl(var(--color-divider)) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
+
+  /* ────────────────────────────────────────────
+     Admin workspace primitives
+     One consistent surface, radius, border, shadow and focus treatment
+     across every admin route. Reuses the global semantic tokens.
+     ──────────────────────────────────────────── */
+  .admin-shell {
+    background: hsl(var(--admin-bg));
+    color: hsl(var(--color-content));
+  }
+
+  .admin-card {
+    @apply rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))];
+    box-shadow: var(--admin-shadow);
+  }
+
+  .admin-card-hover {
+    transition: box-shadow var(--transition-normal), border-color var(--transition-normal), transform var(--transition-normal);
+  }
+  .admin-card-hover:hover {
+    box-shadow: var(--admin-shadow-hover);
+    border-color: hsl(var(--color-line-hover));
+  }
+
+  .admin-kpi {
+    @apply rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] p-5 text-left;
+    box-shadow: var(--admin-shadow);
+    transition: box-shadow var(--transition-normal), border-color var(--transition-normal), transform var(--transition-normal);
+  }
+  .admin-kpi:hover {
+    box-shadow: var(--admin-shadow-hover);
+    border-color: hsl(var(--color-line-hover));
+    transform: translateY(-1px);
+  }
+
+  .admin-btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .admin-btn:focus-visible {
+    @apply outline-none ring-2 ring-[hsl(var(--color-focus))] ring-offset-2 ring-offset-[hsl(var(--admin-bg))];
+  }
+  .admin-btn-primary {
+    @apply bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))] shadow-sm;
+  }
+  .admin-btn-primary:hover {
+    @apply bg-[hsl(var(--color-primary-hover))];
+  }
+  .admin-btn-secondary {
+    @apply border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] text-[hsl(var(--color-content))];
+  }
+  .admin-btn-secondary:hover {
+    @apply border-[hsl(var(--color-line-hover))] bg-[hsl(var(--admin-surface-muted))];
+  }
+  .admin-btn-ghost {
+    @apply text-[hsl(var(--color-content-muted))];
+  }
+  .admin-btn-ghost:hover {
+    @apply bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-content))];
+  }
+
+  .admin-input {
+    @apply min-h-11 w-full rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] px-3.5 text-sm text-[hsl(var(--color-content))] placeholder:text-[hsl(var(--color-content-faint))];
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .admin-input:focus {
+    @apply outline-none border-[hsl(var(--color-focus))] ring-2 ring-[hsl(var(--color-focus)/0.14)];
+  }
+  .admin-input[aria-invalid="true"] {
+    @apply border-[hsl(var(--color-error))] ring-2 ring-[hsl(var(--color-error)/0.12)];
+  }
+
+  .admin-label {
+    @apply mb-1.5 block text-sm font-medium text-[hsl(var(--color-content))];
+  }
+
+  .admin-nav-item {
+    @apply flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-sm font-medium text-[hsl(var(--color-content-muted))];
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+  }
+  .admin-nav-item:hover {
+    @apply bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-content))];
+  }
+  .admin-nav-item[aria-current="page"] {
+    @apply bg-[hsl(var(--color-primary)/0.14)] font-semibold text-[hsl(var(--color-primary-strong))];
+  }
+  .admin-nav-item:focus-visible {
+    @apply outline-none ring-2 ring-[hsl(var(--color-focus))] ring-offset-2 ring-offset-[hsl(var(--admin-surface))];
+  }
+}
+
+/* Hide the public marketplace chrome on admin routes.
+   :has() applies at first paint (no layout shift / no hydration flash). */
+body:has([data-admin-shell]) > div > :not(main) {
+  display: none;
+}
+body:has([data-admin-shell]) > div,
+body:has([data-admin-shell]) main {
+  min-height: 100vh;
 }
 
 /* ────────────────────────────────────────────
@@ -442,6 +751,10 @@
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
@@ -453,6 +766,7 @@
 
   .animate-fade-in { animation: fade-in 0.5s ease-out; }
   .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
+  .animate-fade-up { animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .animate-shimmer { background: linear-gradient(90deg, #e8ebe7 25%, #f0f3f1 50%, #e8ebe7 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 
   /* ── Light Glass System ── */
@@ -519,6 +833,11 @@
     color: hsl(var(--color-content));
   }
 
+  /* ── Background pattern utilities ── */
+  .bg-grid-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z' fill='currentColor' fill-opacity='0.4' fill-rule='nonzero'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
   /* ── Staggered entrance animation ── */
   @keyframes rise {
     from { opacity: 0; transform: translateY(22px); }
@@ -569,7 +888,7 @@
   }
 
   /* ── Focus visible — charcoal ring stays ≥3:1 on ivory (WCAG 2.4.11/2.4.13).
-       Gold (#FFC700) on ivory is only ≈1.5:1 and must not be the focus ring. ── */
+       Gold on parchment is only ≈2:1 and must not be the focus ring. ── */
   *:focus-visible {
     outline: var(--color-focus-width) solid hsl(var(--color-focus));
     outline-offset: 2px;
@@ -581,4 +900,106 @@
     background: hsl(var(--color-primary) / 0.28);
     color: hsl(var(--color-content));
   }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Premium / Exclusive Collection
+   A self-contained dark "island" so the collection reads as high-end on both
+   the ivory homepage and the premium listing page. Scoped to .premium-scope —
+   nothing here leaks into the rest of the design system.
+   Gold is reserved for premium status; emerald for availability / secondary CTA.
+   ─────────────────────────────────────────────────────────────────────────── */
+.premium-scope {
+  /* Royal navy island with antique-gold accents. */
+  --pc-bg: #070c20;
+  --pc-card: #0f1838;
+  --pc-elevated: #131f46;
+  --pc-text: #f8f6ee;
+  --pc-text-2: #b4bbd0;
+  --pc-muted: #8189a4;
+  --pc-gold: #c9a24b;
+  --pc-gold-hi: #ecd48c;
+  /* Availability dot only — buttons use --pc-gold. */
+  --pc-emerald: #2fbf8f;
+  --pc-line: rgb(255 255 255 / 0.09);
+  --pc-line-strong: rgb(201 162 75 / 0.5);
+  background:
+    radial-gradient(120% 70% at 50% 0%, #0f1a40 0%, transparent 60%),
+    var(--pc-bg);
+  color: var(--pc-text);
+}
+.premium-scope .pc-gold-rule {
+  height: 1px;
+  background: linear-gradient(90deg, var(--pc-gold), rgb(201 162 75 / 0) 85%);
+}
+.premium-scope .pc-gold-text {
+  background: linear-gradient(120deg, var(--pc-gold) 10%, var(--pc-gold-hi) 55%, var(--pc-gold) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .premium-scope * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Design blend: minimal flat base + glass, bento tiles, soft depth ─── */
+@layer components {
+  /* Liquid glass: translucent, saturated blur with a specular top edge. */
+  .glass-liquid {
+    background: hsl(var(--color-surface) / 0.72);
+    border: 1px solid hsl(0 0% 100% / 0.6);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.8),
+      0 8px 32px hsl(0 0% 0% / 0.1);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-liquid { background: hsl(var(--color-surface) / 0.96); }
+  }
+
+  /* Bento tile: flat card, generous radius, hairline border, lifts on hover. */
+  .bento-tile {
+    border-radius: 1.5rem;
+    border: 1px solid hsl(var(--color-line));
+    background: hsl(var(--color-card));
+    box-shadow: var(--shadow-subtle);
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  @media (hover: hover) {
+    .bento-tile:hover { box-shadow: var(--shadow-elevated); transform: translateY(-1px); }
+  }
+
+  /* Primary button pressed state. The resting/hover gold-plate shadows live
+     with the other .btn-primary rules above (single source of truth). */
+  .btn-primary:active {
+    box-shadow: inset 0 2px 4px hsl(40 55% 28% / 0.35);
+  }
+}
+
+/* ─── Neumorphism has been retired: it is explicitly excluded from the design
+   system. Bento tiles and chips use the flat surfaces defined above. ─── */
+
+/* ────────────────────────────────────────────
+   Royal-classic: serif weight cap
+   Headings were authored for a sans and often carry font-extrabold/black.
+   Playfair is already high-contrast; at 800–900 the hairlines clot. This is
+   deliberately unlayered so it outranks the utility classes, and it leaves the
+   admin workspace (sans) alone.
+   ──────────────────────────────────────────── */
+:is(h1, h2, h3):is(.font-extrabold, .font-black):not(.admin-shell *) {
+  font-weight: 700;
+}
+
+/* Compact headings (card titles, footer labels) are set at 12–14px, where a
+   high-contrast serif's hairlines get thin and cramped. Display sizes keep the
+   serif; small ones stay in the UI sans for legibility. */
+:is(h2, h3):is([class*="text-xs"], [class*="text-sm"]):not(.font-display):not(.admin-shell *) {
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.25;
+  font-feature-settings: normal;
 }

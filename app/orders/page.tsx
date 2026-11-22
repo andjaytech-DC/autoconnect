@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2, Receipt } from "lucide-react";
 import { getCarRef, inr, loadCarRefs } from "@/app/lib/account";
 import { cn } from "@/app/lib/utils";
+import EmptyState from "@/app/components/ui/EmptyState";
 
 interface Order {
   id: string;
@@ -16,10 +17,10 @@ interface Order {
 }
 
 const statusStyle: Record<Order["status"], string> = {
-  PENDING: "bg-amber-500/15 text-amber-400",
-  APPROVED: "bg-emerald-500/15 text-emerald-400",
-  COMPLETED: "bg-blue-500/15 text-blue-400",
-  CANCELLED: "bg-red-500/15 text-red-400",
+  PENDING: "bg-amber-500/15 text-amber-800",
+  APPROVED: "bg-emerald-500/15 text-emerald-700",
+  COMPLETED: "bg-blue-500/15 text-blue-800",
+  CANCELLED: "bg-red-500/15 text-red-700",
 };
 
 export default function OrdersPage() {
@@ -42,11 +43,11 @@ export default function OrdersPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
-      <main className="flex-1">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
+      <div className="flex-1">
     <div className="mx-auto max-w-5xl px-6 py-12 lg:px-12">
       <div className="mb-8 flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFC700] to-yellow-500 text-[#15130a]">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-500 text-[#15130a]">
           <Receipt size={20} aria-hidden="true" />
         </span>
         <div>
@@ -61,17 +62,18 @@ export default function OrdersPage() {
           <span className="ml-2">Loading orders…</span>
         </div>
       ) : error ? (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-amber-300">
-          {error}
-        </div>
+        <EmptyState tone="error" title="We couldn't load your orders" description={error} />
       ) : orders.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-card py-20 text-center">
-          <Receipt size={40} className="mx-auto text-content-faint" aria-hidden="true" />
-          <p className="mt-4 font-semibold text-content">No orders yet</p>
-          <p className="mt-1 text-sm text-content-muted">
-            Your finance, insurance and purchase orders will appear here.
-          </p>
-        </div>
+        <EmptyState
+          icon={Receipt}
+          title="No orders yet"
+          description="Your finance, insurance and purchase orders will appear here."
+          action={
+            <Link href="/cars" className="btn btn-primary">
+              Browse cars
+            </Link>
+          }
+        />
       ) : (
         <ul className="space-y-3">
           {orders.map((o) => {
@@ -106,17 +108,17 @@ export default function OrdersPage() {
 
       <p className="mt-8 text-xs text-content-muted">
         Looking for something else?{" "}
-        <Link href="/dashboard" className="font-semibold text-[#FFC700]">
+        <Link href="/dashboard" className="font-semibold text-[hsl(var(--color-primary-strong))]">
           Go to your dashboard
         </Link>{" "}
         or{" "}
-        <Link href="/finance" className="font-semibold text-[#FFC700]">
+        <Link href="/finance" className="font-semibold text-[hsl(var(--color-primary-strong))]">
           explore finance
         </Link>
         .
       </p>
       </div>
-      </main>
+      </div>
     </div>
   );
 }

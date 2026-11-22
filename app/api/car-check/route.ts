@@ -1,29 +1,23 @@
 import { NextResponse } from "next/server";
 
-import { inspectionReports } from "@/app/server/seed";
+import { normaliseRc } from "@/app/lib/rc";
+import { enforceRateLimit } from "@/app/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 /**
  * GET /api/car-check?rc=MH12AB1234
  *
- * Serves the Progressive AutoHub inspection report dataset. Unknown plates
- * return `found: false` — reports are never fabricated for unknown RCs.
- *
- * P0-13: the dataset is now empty (the two invented reports were removed), so
- * every lookup returns `found: false`. The `source` field previously read
- * "sample", which implied demo data existed to try. It now reports
- * "not_found" so the UI cannot misrepresent an empty result as a sample.
+ * No inspection-report provider is connected and NestJS holds no reports keyed
+ * by registration number, so every valid lookup answers `found: false`. Reports
+ * are never fabricated. When a verified provider is added it belongs in NestJS
+ * (like vehicle-history's lookup service); this route then forwards to it.
  */
-const RC_PATTERN = /^[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{4}$/;
-
-function normaliseRc(raw: string | null): string | null {
-  if (!raw) return null;
-  const rc = raw.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  return RC_PATTERN.test(rc) ? rc : null;
-}
-
 export async function GET(request: Request) {
+  if (!(await enforceRateLimit(request, { limit: 30, key: "car-check" })).ok) {
+    return NextResponse.json({ error: "Too many requests, try again later" }, { status: 429 });
+  }
+
   const rc = normaliseRc(new URL(request.url).searchParams.get("rc"));
   if (!rc) {
     return NextResponse.json(
@@ -32,16 +26,11 @@ export async function GET(request: Request) {
     );
   }
 
-  const report = inspectionReports.find((r) => r.rc === rc);
-  if (!report) {
-    return NextResponse.json({
-      found: false,
-      source: "not_found",
-      rc,
-      message:
-        "No inspection report is on file for this registration number. Connect a verified inspection provider to enable live reports.",
-    });
-  }
-
-  return NextResponse.json({ found: true, source: "provider", report });
+  return NextResponse.json({
+    found: false,
+    source: "not_found",
+    rc,
+    message:
+      "No inspection report is on file for this registration number. Connect a verified inspection provider to enable live reports.",
+  });
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Loader2, ShieldCheck, RefreshCw } from "lucide-react";
+import { CheckCircle2, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+
+import { PanelError } from "./ui/AdminPanelState";
 
 interface Permission {
   id: number;
@@ -62,7 +64,7 @@ export default function SecurityPanel() {
   const [notice, setNotice] = useState("");
 
   const fetchSecurity = useCallback(async () => {
-    const res = await fetch("/api/admin/security");
+    const res = await fetch("/api/admin/security", { cache: "no-store" });
     if (!res.ok) throw new Error("Could not load the permission matrix.");
     const json = await res.json();
     setRoles(Array.isArray(json.roles) ? json.roles : []);
@@ -73,7 +75,7 @@ export default function SecurityPanel() {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/admin/security");
+        const res = await fetch("/api/admin/security", { cache: "no-store" });
         if (!res.ok) throw new Error("Could not load the permission matrix.");
         const json = await res.json();
         if (!alive) return;
@@ -135,8 +137,9 @@ export default function SecurityPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-content-muted">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading permission matrix
+      <div className="admin-card flex items-center gap-2 p-5 text-sm text-[hsl(var(--color-content-muted))]" role="status">
+        <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+        Loading permission matrix…
       </div>
     );
   }
@@ -144,25 +147,33 @@ export default function SecurityPanel() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1">
-          {ROLES.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => {
-                setActive(r);
-                setNotice("");
-                setError("");
-              }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                active === r
-                  ? "bg-[#FFC700] text-black"
-                  : "text-content-muted hover:text-content"
-              }`}
-            >
-              {r}
-            </button>
-          ))}
+        <div
+          className="flex flex-wrap gap-1 rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] p-1"
+          role="group"
+          aria-label="Select a role"
+        >
+          {ROLES.map((role) => {
+            const isActive = active === role;
+            return (
+              <button
+                key={role}
+                type="button"
+                onClick={() => {
+                  setActive(role);
+                  setNotice("");
+                  setError("");
+                }}
+                aria-pressed={isActive}
+                className={`inline-flex min-h-10 items-center rounded-lg px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] ${
+                  isActive
+                    ? "bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))]"
+                    : "text-[hsl(var(--color-content-muted))] hover:bg-[hsl(var(--admin-surface-muted))] hover:text-[hsl(var(--color-content))]"
+                }`}
+              >
+                {role.replace(/_/g, " ").toLowerCase()}
+              </button>
+            );
+          })}
         </div>
         <button
           type="button"
@@ -172,32 +183,31 @@ export default function SecurityPanel() {
               .catch((e) => setError((e as Error).message))
               .finally(() => setLoading(false));
           }}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium transition hover:bg-muted"
+          className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] px-3.5 text-sm text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-content))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]"
         >
-          <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Refresh
         </button>
       </div>
 
-      {error && (
-        <p className="flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          {error}
-        </p>
-      )}
+      {error && <PanelError message={error} onRetry={() => void fetchSecurity()} />}
       {notice && (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        <p
+          className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
+          role="status"
+        >
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           {notice}
         </p>
       )}
 
       {risky.length > 0 && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900" role="alert">
           <p className="font-semibold">
-            CUSTOMER currently holds {risky.length} permission
-            {risky.length === 1 ? "" : "s"} it should never have:
+            Customer accounts currently hold {risky.length} permission
+            {risky.length === 1 ? "" : "s"} they should never have:
           </p>
-          <p className="mt-1 font-mono text-xs">{risky.join(", ")}</p>
-          <p className="mt-2">
+          <p className="mt-1 break-words font-mono text-xs">{risky.join(", ")}</p>
+          <p className="mt-2 leading-6">
             Untick them below. A signed-in customer must not be able to delete
             vehicles or edit other people&apos;s reviews.
           </p>
@@ -205,61 +215,73 @@ export default function SecurityPanel() {
       )}
 
       {permissions.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-content-muted">
-          No permissions are defined in the database.
-        </p>
+        <div className="admin-card px-5 py-10 text-center">
+          <p className="text-sm font-semibold text-[hsl(var(--color-content))]">
+            No permissions are defined
+          </p>
+          <p className="mt-1 text-sm text-[hsl(var(--color-content-muted))]">
+            Seed the permission table before assigning role access.
+          </p>
+        </div>
       ) : (
-        byModule.map(([module, perms]) => (
-          <div key={module} className="rounded-xl border border-border bg-card p-5">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-content-muted">
-              {module}
-            </h4>
-            <ul className="mt-3 space-y-1.5">
-              {perms.map((p) => {
-                const on = granted.has(p.id);
-                const isRisky =
-                  active === "CUSTOMER" &&
-                  DANGEROUS_FOR_CUSTOMER.includes(p.name);
-                return (
-                  <li key={p.id}>
-                    <label
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition hover:bg-muted ${
-                        isRisky && on ? "bg-red-50" : ""
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        disabled={saving}
-                        onChange={() => void toggle(p.id)}
-                        className="h-4 w-4 shrink-0 accent-[#FFC700]"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-mono text-sm text-content">
-                          {p.name}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {byModule.map(([module, perms]) => (
+            <div key={module} className="admin-card p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">
+                  {module.replace(/_/g, " ")}
+                </h4>
+                <span className="rounded-full bg-[hsl(var(--admin-surface-muted))] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[hsl(var(--color-content-muted))]">
+                  {perms.filter((p) => granted.has(p.id)).length}/{perms.length}
+                </span>
+              </div>
+              <ul className="mt-3 space-y-1">
+                {perms.map((p) => {
+                  const on = granted.has(p.id);
+                  const isRisky =
+                    active === "CUSTOMER" &&
+                    DANGEROUS_FOR_CUSTOMER.includes(p.name);
+                  return (
+                    <li key={p.id}>
+                      <label
+                        className={`flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-[hsl(var(--admin-surface-muted))] ${
+                          isRisky && on ? "bg-red-50" : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          disabled={saving}
+                          onChange={() => void toggle(p.id)}
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--color-primary-strong))]"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-mono text-xs text-[hsl(var(--color-content))]">
+                            {p.name}
+                          </span>
+                          {p.description && (
+                            <span className="mt-0.5 block text-xs leading-5 text-[hsl(var(--color-content-muted))]">
+                              {p.description}
+                            </span>
+                          )}
                         </span>
-                        {p.description && (
-                          <span className="block text-xs text-content-muted">
-                            {p.description}
+                        {isRisky && (
+                          <span className="shrink-0 rounded border border-red-300 bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-red-700">
+                            risky
                           </span>
                         )}
-                      </span>
-                      {isRisky && (
-                        <span className="shrink-0 rounded border border-red-300 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase text-red-700">
-                          risky for customer
-                        </span>
-                      )}
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
 
-      <p className="flex items-center gap-1.5 text-xs text-content-muted">
-        <ShieldCheck className="h-3.5 w-3.5" />
+      <p className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-content-muted))]">
+        <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
         Saving replaces this role&apos;s entire permission set.
       </p>
     </div>

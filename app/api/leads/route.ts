@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/app/server/prisma";
-import { requireAdminSession } from "@/app/server/authz";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
 import { enforceRateLimit } from "@/app/lib/rate-limit";
-import { backendFetch, isBackendUnreachable, BackendError } from "@/app/lib/backend";
+import { readSessionCookie, verifySession } from "@/app/lib/auth";
+import { requireAdminSession } from "@/app/server/authz";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ const leadSchema = z.object({
   message: z.string().max(2000).optional(),
 });
 
-/** POST /api/leads — public: create a contact lead for a vehicle (backend first). */
+/** POST /api/leads — public: create a contact lead for a vehicle. NestJS owns the record. */
 export async function POST(request: Request) {
   if (!(await enforceRateLimit(request, { limit: 10, key: "leads" })).ok) {
     return NextResponse.json(
@@ -39,10 +40,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // 1) NestJS backend (authoritative)
+  // A signed-in caller's token lets NestJS record them as the owner; guests
+  // still enquire anonymously.
+  const session = await verifySession(readSessionCookie(request));
+
   try {
     const lead = await backendFetch("/leads", {
       method: "POST",
+      token: session?.token ?? null,
       body: {
         vehicleId: parsed.data.vehicleId,
         customerName: parsed.data.customerName,
@@ -53,42 +58,27 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ data: lead, source: "backend" }, { status: 201 });
   } catch (err) {
-    if (!isBackendUnreachable(err) && err instanceof BackendError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    // Backend unreachable — vehicles don't exist in local DB, so skip Prisma fallback
-    return NextResponse.json({ error: "Service temporarily unavailable. Please try again." }, { status: 503 });
+    return backendErrorResponse(err);
   }
 }
 
-/** GET /api/leads — admin: list leads with optional status filter (backend first). */
+/** GET /api/leads — admin: list leads with an optional status filter. */
 export async function GET(request: Request) {
   const auth = await requireAdminSession(request);
   if (!auth.ok) return auth.response;
-  const session = auth.session;
+  const token = auth.session.token;
+  if (!token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
   const status = new URL(request.url).searchParams.get("status");
 
-  // 1) NestJS backend (authoritative)
-  if (session.token) {
-    try {
-      const leads = await backendFetch(
-        `/leads${status ? `?status=${encodeURIComponent(status)}` : ""}`,
-        { token: session.token },
-      );
-      return NextResponse.json({ leads: leads ?? [], source: "backend" });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
-    }
+  try {
+    const leads = await backendFetch<unknown[]>(
+      `/leads${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+      { token },
+    );
+    return NextResponse.json({ leads: leads ?? [], source: "backend" });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
-
-  // 2) Local fallback
-  const rows = await prisma.lead.findMany({
-    where: status ? { status: status as never } : undefined,
-    include: { vehicle: { select: { id: true, title: true, price: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-  return NextResponse.json({ leads: rows, source: "local" });
-}
+}

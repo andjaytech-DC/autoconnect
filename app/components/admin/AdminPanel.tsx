@@ -1,18 +1,30 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Plus, LayoutDashboard, Car, Package, MessageSquare, ChevronDown } from 'lucide-react';
-import VehicleForm from './VehicleForm';
 import {
-  ADMIN_DOMAINS,
-  type VehicleBucketKey,
-  bucketCounts as countBuckets,
+  ArrowUpRight,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  Fuel,
+  Gauge,
+  LayoutGrid,
+  List,
+  MapPin,
+  Pencil,
+  Search,
+  SlidersHorizontal,
+} from 'lucide-react';
+
+import {
+  bucketCounts,
   bucketLabel,
-  inBucket as inVehicleBucket,
-  isPublished,
+  inBucket,
+  type VehicleBucketKey,
 } from './adminNav';
+import StatusBadge from './ui/StatusBadge';
+import { formatINR, formatIndianNumber } from '@/app/lib/currency';
 
 export interface AdminVehicle {
   id: number;
@@ -43,264 +55,409 @@ interface AdminPanelProps {
   initialVehicles: AdminVehicle[];
 }
 
-/* =========================================================
-   NAVIGATION — single source of truth (./adminNav).
+type SortKey = 'newest' | 'price-desc' | 'price-asc' | 'year-desc';
+type LayoutMode = 'grid' | 'table';
 
-   Both the portal left rail and this panel's sub-menu read
-   ADMIN_DOMAINS, so the two nav systems can never disagree.
-   Leads is a top-level domain, NOT a vehicle sub-item.
-   ========================================================= */
-
-type View = "dashboard" | VehicleBucketKey | "leads";
-
-type IconComponent = React.ComponentType<{ size?: number | string; className?: string }>;
-
-interface NavLeaf { key: View; label: string; icon?: IconComponent }
-interface NavGroup { key: string; label: string; icon: IconComponent; view?: View; children?: NavLeaf[] }
-
-const DOMAIN_ICONS: Record<string, IconComponent> = {
-  dashboard: LayoutDashboard,
-  vehicles: Car,
-  leads: MessageSquare,
-};
-
-const BUCKET_ICONS: Partial<Record<VehicleBucketKey, IconComponent>> = {
-  draft: Package,
-  add: Plus,
-};
-
-/** Panel-renderable domains, in canonical order. */
-const NAV_TREE: NavGroup[] = ADMIN_DOMAINS.filter((d) => d.inPanel).map((d) => {
-  const icon = DOMAIN_ICONS[d.key] ?? Car;
-  if (d.children?.length) {
-    return {
-      key: d.key,
-      label: d.label,
-      icon,
-      view: d.children[0].key,
-      children: d.children.map((c) => ({ key: c.key, label: c.label, icon: BUCKET_ICONS[c.key] })),
-    };
-  }
-  return { key: d.key, label: d.label, icon, view: d.key as View };
-});
-
-/** Map a page hash (e.g. #vehicles) to the initial view. */
-function viewFromHash(hash: string): View {
-  const key = hash.replace("#", "");
-  const group = NAV_TREE.find((g) => g.key === key);
-  if (!group) return "dashboard";
-  return group.view ?? "dashboard";
-}
-
-/* =========================================================
-   BUCKETS — predicates live in ./adminNav so the portal,
-   the panel and any test share one definition.
-   listingStatus = public visibility · status = lifecycle.
-   ========================================================= */
-
-function bucketTitle(view: View): string {
-  if (view === "dashboard") return "Dashboard";
-  if (view === "leads") return "Leads";
-  return bucketLabel(view as VehicleBucketKey);
-}
-
-function VehicleCard({ v }: { v: AdminVehicle }) {
-  const img = v.images && v.images.length > 0 ? v.images[0] : null;
-  return (
-    // Whole card is the click target → detail/edit. A real link (middle-click,
-    // copy address, keyboard focus) instead of a nested button.
-    <Link
-      href={`/admin/vehicles/${v.id}/edit`}
-      className="group block rounded-2xl border border-line bg-card overflow-hidden transition-all hover:border-[#FFC700]/50 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFC700]/60"
-      aria-label={`Edit ${v.title || 'vehicle'}`}
-    >
-      <div className="aspect-[4/3] bg-surface">
-        {img ? (
-          <img src={img} alt={v.title || 'Vehicle'} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-content-muted"><Car size={32} /></div>
-        )}
-      </div>
-      <div className="p-4">
-        <p className="font-bold text-content text-sm truncate">{v.title || 'Untitled'}</p>
-        <p className="text-xs text-content-muted mt-1">{v.year} · {v.mileage ? v.mileage + ' km' : '—'}</p>
-        <p className="text-sm font-bold text-[#FFC700] mt-2">{v.price != null ? '₹' + Number(v.price).toLocaleString('en-IN') : '—'}</p>
-        <p className="text-xs text-content-muted mt-1">{v.city && v.state ? v.city + ', ' + v.state : (v.city || '')}</p>
-        <div className="flex gap-1.5 mt-3 flex-wrap">
-          <span className={'inline-block px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ' + (isPublished(v) ? 'bg-emerald-500/10 text-emerald-400' : 'bg-[#161b21] text-slate-400')}>
-            {v.listingStatus || 'UNKNOWN'}
-          </span>
-          <span className="inline-block px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-surface text-content-muted">
-            {v.status || 'UNKNOWN'}
-          </span>
-        </div>
-        <div className="mt-3">
-          <span className="inline-block px-4 py-1.5 bg-[#FFC700] text-[#15130a] rounded-lg text-xs font-bold group-hover:brightness-110">
-            Edit
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
+const PAGE_SIZE = 12;
+const FILTERS: VehicleBucketKey[] = ['all', 'published', 'draft', 'reserved', 'sold', 'archived'];
 
 export default function AdminPanel({ initialVehicles }: AdminPanelProps) {
-  const router = useRouter();
-  const [view, setView] = useState<View>('dashboard');
-  // Freshness: the page is force-dynamic, so router.refresh() re-renders it
-  // server-side after a create/save and the new initialVehicles flow in —
-  // counts and the grid can never drift apart.
-  const vehicles = initialVehicles;
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['vehicles']));
+  const [query, setQuery] = useState('');
+  const [bucket, setBucket] = useState<VehicleBucketKey>('all');
+  const [sort, setSort] = useState<SortKey>('newest');
+  const [layout, setLayout] = useState<LayoutMode>('grid');
+  const [page, setPage] = useState(1);
 
-  // #vehicles (and other section hashes) deep-link into the panel.
-  useEffect(() => {
-    const apply = () => {
-      if (!window.location.hash) return;
-      setView(viewFromHash(window.location.hash));
-    };
-    apply();
-    window.addEventListener('hashchange', apply);
-    return () => window.removeEventListener('hashchange', apply);
-  }, []);
+  const counts = useMemo(() => bucketCounts(initialVehicles), [initialVehicles]);
 
-  // One dataset → every count. Same source as the grid below.
-  const counts = useMemo(() => countBuckets(vehicles), [vehicles]);
-
-  const toggleGroup = (key: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const rows = initialVehicles.filter((vehicle) => {
+      if (!inBucket(bucket, vehicle)) return false;
+      if (!needle) return true;
+      return [
+        vehicle.title,
+        vehicle.city,
+        vehicle.state,
+        vehicle.fuel,
+        vehicle.transmission,
+        vehicle.status,
+        vehicle.listingStatus,
+        String(vehicle.year),
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle));
     });
+
+    return rows.sort((a, b) => {
+      switch (sort) {
+        case 'price-desc':
+          return Number(b.price) - Number(a.price);
+        case 'price-asc':
+          return Number(a.price) - Number(b.price);
+        case 'year-desc':
+          return Number(b.year) - Number(a.year);
+        default:
+          return (b.createdAt ?? '').localeCompare(a.createdAt ?? '');
+      }
+    });
+  }, [bucket, initialVehicles, query, sort]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const changeFilter = (next: VehicleBucketKey) => {
+    setBucket(next);
+    setPage(1);
   };
 
-  const renderContent = () => {
-    if (view === 'dashboard') {
-      return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Vehicles" value={vehicles.length} onClick={() => setView('all')} />
-          <StatCard label="Drafts" value={counts.draft} onClick={() => setView('draft')} />
-          <StatCard label="Published" value={counts.published} onClick={() => setView('published')} />
-          <StatCard label="Reserved" value={counts.reserved} onClick={() => setView('reserved')} />
-          <StatCard label="Sold" value={counts.sold} onClick={() => setView('sold')} />
-          <StatCard label="Archived" value={counts.archived} onClick={() => setView('archived')} />
-          <div className="sm:col-span-2 lg:col-span-4">
-            <button type="button" onClick={() => setView('add')} className="w-full flex items-center justify-center gap-2 py-5 bg-[#FFC700] text-[#15130a] rounded-2xl text-lg font-bold hover:brightness-110 transition-colors">
-              <Plus size={20} /> Add New Car
-            </button>
-          </div>
-        </div>
-      );
-    }
-    if (view === 'add') {
-      return (
-        <VehicleForm
-          onCancel={() => setView('all')}
-          onSuccess={() => { setView('all'); router.refresh(); }}
-        />
-      );
-    }
-    if (view === 'leads') return null; // Leads render in the page's own #leads section below this panel.
-
-    const items = vehicles.filter((v) => inVehicleBucket(view as VehicleBucketKey, v));
-    return (
-      <div>
-        <p className="text-sm text-content-muted mb-4">{items.length} vehicle(s) in {bucketTitle(view)}</p>
-        {items.length === 0 ? (
-          <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl">
-            <Car size={32} className="mx-auto text-content-muted mb-2" />
-            <p className="text-content-muted text-sm">No vehicles here yet</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((v) => <VehicleCard key={v.id} v={v} />)}
-          </div>
-        )}
-      </div>
-    );
+  const clearFilters = () => {
+    setQuery('');
+    setBucket('all');
+    setPage(1);
   };
-
-  const activeGroup = NAV_TREE.find((g) =>
-    g.view === view || (g.children ?? []).some((c) => c.key === view),
-  );
-  const activeLabel =
-    NAV_TREE.flatMap((g) => [g as NavGroup | NavLeaf, ...(g.children ?? [])])
-      .find((n) => 'key' in n && n.key === view && 'label' in n)?.label
-    ?? activeGroup?.label ?? 'Vehicles';
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-      {/* Left rail + Vehicles sub-menu: both derive from NAV_TREE. */}
-      <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" aria-label="Admin sections">
-        {NAV_TREE.map((group) => {
-          const isGroupActive = activeGroup?.key === group.key;
-          const isOpen = expanded.has(group.key) || isGroupActive;
-          return (
-            <div key={group.key} className="flex lg:contents flex-col">
-              {group.children ? (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="admin-card p-3 sm:p-4">
+        <div className="-mx-1 overflow-x-auto px-1 pb-1">
+          <div className="flex min-w-max gap-1.5" role="group" aria-label="Filter vehicles by status">
+            {FILTERS.map((key) => {
+              const active = bucket === key;
+              return (
                 <button
+                  key={key}
                   type="button"
-                  onClick={() => { toggleGroup(group.key); setView('all'); }}
-                  aria-expanded={isOpen}
-                  className={'flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ' + (isGroupActive ? 'bg-[#FFC700]/15 text-[#FFC700]' : 'bg-card text-content hover:bg-surface')}
+                  onClick={() => changeFilter(key)}
+                  aria-pressed={active}
+                  className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] ${
+                    active
+                      ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))]'
+                      : 'border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] text-[hsl(var(--color-content-muted))] hover:border-[hsl(var(--color-line-hover))] hover:text-[hsl(var(--color-content))]'
+                  }`}
                 >
-                  <span className="flex items-center gap-2.5"><group.icon size={16} /> {group.label}</span>
-                  <ChevronDown size={14} className={'transition-transform ' + (isOpen ? 'rotate-180' : '')} />
+                  {key === 'all' ? 'All vehicles' : bucketLabel(key)}
+                  <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${active ? 'bg-black/10' : 'bg-[hsl(var(--admin-surface-muted))]'}`}>
+                    {formatIndianNumber(counts[key] ?? 0)}
+                  </span>
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setView(group.view!)}
-                  aria-current={isGroupActive ? 'page' : undefined}
-                  className={'flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ' + (isGroupActive ? 'bg-[#FFC700] text-[#15130a]' : 'bg-card text-content hover:bg-surface')}
-                >
-                  <group.icon size={16} /> {group.label}
-                </button>
-              )}
-              {group.children && isOpen && (
-                <div className="flex lg:flex-col gap-1 mt-1 ml-2 lg:ml-3 border-l border-line pl-2">
-                  {group.children.map((child) => (
-                    <button
-                      key={child.key}
-                      type="button"
-                      onClick={() => setView(child.key)}
-                      aria-current={view === child.key ? 'page' : undefined}
-                      className={'flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ' + (view === child.key ? 'bg-[#FFC700]/15 text-[#FFC700]' : 'text-content-muted hover:bg-surface hover:text-content')}
-                    >
-                      <span>{child.label}</span>
-                      {child.key !== 'add' && (
-                        <span className="text-[10px] opacity-70">{counts[child.key as VehicleBucketKey] ?? 0}</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-center">
+          <label className="relative block flex-1">
+            <span className="sr-only">Search vehicles</span>
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by make, model, city, fuel or status…"
+              className="admin-input pl-9"
+            />
+          </label>
+
+          <div className="flex items-center gap-2">
+            <label className="relative flex-1 sm:flex-none">
+              <span className="sr-only">Sort vehicles</span>
+              <SlidersHorizontal size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
+              <select
+                value={sort}
+                onChange={(event) => {
+                  setSort(event.target.value as SortKey);
+                  setPage(1);
+                }}
+                className="admin-input min-w-0 pl-9 pr-8 sm:w-48"
+              >
+                <option value="newest">Newest first</option>
+                <option value="price-desc">Price: high to low</option>
+                <option value="price-asc">Price: low to high</option>
+                <option value="year-desc">Year: newest</option>
+              </select>
+            </label>
+
+            <div className="flex shrink-0 items-center rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] p-1" role="group" aria-label="Vehicle layout">
+              <button
+                type="button"
+                onClick={() => setLayout('grid')}
+                aria-pressed={layout === 'grid'}
+                aria-label="Grid view"
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] ${layout === 'grid' ? 'bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-content))]' : 'text-[hsl(var(--color-content-faint))] hover:text-[hsl(var(--color-content))]'}`}
+              >
+                <LayoutGrid size={17} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setLayout('table')}
+                aria-pressed={layout === 'table'}
+                aria-label="Table view"
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] ${layout === 'table' ? 'bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-content))]' : 'text-[hsl(var(--color-content-faint))] hover:text-[hsl(var(--color-content))]'}`}
+              >
+                <List size={17} aria-hidden="true" />
+              </button>
             </div>
-          );
-        })}
-      </nav>
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-extrabold text-content">{activeLabel}</h2>
-          {view !== 'add' && (
-            <button type="button" onClick={() => setView('add')} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-bold hover:brightness-110 transition-colors">
-              <Plus size={16} /> Add New Car
-            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Result meta */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <p className="text-sm text-[hsl(var(--color-content-muted))]" aria-live="polite">
+          {filtered.length === initialVehicles.length
+            ? `${formatIndianNumber(filtered.length)} vehicle${filtered.length === 1 ? '' : 's'}`
+            : `${formatIndianNumber(filtered.length)} of ${formatIndianNumber(initialVehicles.length)} vehicles`}
+          {bucket !== 'all' && <span className="text-[hsl(var(--color-content-faint))]"> · {bucketLabel(bucket)}</span>}
+        </p>
+        {pageCount > 1 && (
+          <p className="text-xs text-[hsl(var(--color-content-faint))]">
+            Page {safePage} of {pageCount}
+          </p>
+        )}
+      </div>
+
+      {/* Content */}
+      {filtered.length === 0 ? (
+        <EmptyState hasInventory={initialVehicles.length > 0} onClear={clearFilters} />
+      ) : layout === 'grid' ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((vehicle) => (
+            <VehicleCard key={vehicle.id} vehicle={vehicle} />
+          ))}
+        </div>
+      ) : (
+        <VehicleTable vehicles={visible} />
+      )}
+
+      {/* Pagination */}
+      {pageCount > 1 && (
+        <nav className="flex items-center justify-between gap-3 px-1 pt-1" aria-label="Vehicle pagination">
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(1, safePage - 1))}
+            disabled={safePage === 1}
+            className="admin-btn admin-btn-secondary disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <ChevronLeft size={16} aria-hidden="true" /> Previous
+          </button>
+          <span className="text-xs font-medium text-[hsl(var(--color-content-muted))]">
+            {safePage} / {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(Math.min(pageCount, safePage + 1))}
+            disabled={safePage === pageCount}
+            className="admin-btn admin-btn-secondary disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Next <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        </nav>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Vehicle card                                                       */
+/* ------------------------------------------------------------------ */
+
+function VehicleCard({ vehicle }: { vehicle: AdminVehicle }) {
+  return (
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] shadow-[var(--admin-shadow)] transition-shadow hover:shadow-[var(--admin-shadow-hover)]">
+      <div className="relative aspect-[16/10] min-h-0 overflow-hidden bg-[hsl(var(--admin-surface-muted))]">
+        <VehicleImage vehicle={vehicle} />
+        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          <StatusBadge status={vehicle.listingStatus} />
+          {vehicle.status && vehicle.status !== 'AVAILABLE' && vehicle.status !== vehicle.listingStatus && (
+            <StatusBadge status={vehicle.status} />
           )}
         </div>
-        {renderContent()}
+      </div>
+
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="line-clamp-2 text-sm font-bold leading-5 text-[hsl(var(--color-content))]">
+            {vehicle.title || 'Untitled vehicle'}
+          </h3>
+          <p className="shrink-0 text-sm font-bold tabular-nums text-[hsl(var(--color-content))]">
+            {vehicle.price != null ? formatINR(vehicle.price) : '—'}
+          </p>
+        </div>
+
+        <dl className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-[hsl(var(--color-content-muted))]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Gauge size={13} className="shrink-0 text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
+            <dt className="sr-only">Mileage</dt>
+            <dd className="truncate">{vehicle.mileage ? `${formatIndianNumber(vehicle.mileage)} km` : '—'}</dd>
+          </div>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Fuel size={13} className="shrink-0 text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
+            <dt className="sr-only">Fuel</dt>
+            <dd className="truncate">{vehicle.fuel || '—'} · {vehicle.transmission || '—'}</dd>
+          </div>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Car size={13} className="shrink-0 text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
+            <dt className="sr-only">Year</dt>
+            <dd className="truncate">{vehicle.year || '—'}</dd>
+          </div>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <MapPin size={13} className="shrink-0 text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
+            <dt className="sr-only">Location</dt>
+            <dd className="truncate">{vehicle.city ? `${vehicle.city}${vehicle.state ? `, ${vehicle.state}` : ''}` : 'Location not set'}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-auto flex items-center gap-2 pt-4">
+          <Link
+            href={`/cars/${vehicle.id}`}
+            className="admin-btn admin-btn-secondary flex-1 text-xs"
+            aria-label={`View ${vehicle.title || 'vehicle'} on the storefront`}
+          >
+            View <ArrowUpRight size={14} aria-hidden="true" />
+          </Link>
+          <Link
+            href={`/admin/vehicles/${vehicle.id}/edit`}
+            className="admin-btn admin-btn-primary flex-1 text-xs"
+            aria-label={`Edit ${vehicle.title || 'vehicle'}`}
+          >
+            <Pencil size={14} aria-hidden="true" /> Edit
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Table                                                              */
+/* ------------------------------------------------------------------ */
+
+function VehicleTable({ vehicles }: { vehicles: AdminVehicle[] }) {
+  return (
+    <div className="admin-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] border-collapse text-left">
+          <caption className="sr-only">Vehicle inventory</caption>
+          <thead>
+            <tr className="border-b border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface-muted))]">
+              <th scope="col" className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">Vehicle</th>
+              <th scope="col" className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">Status</th>
+              <th scope="col" className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">Price</th>
+              <th scope="col" className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">Specs</th>
+              <th scope="col" className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">Location</th>
+              <th scope="col" className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--color-content-muted))]">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[hsl(var(--color-line))]">
+            {vehicles.map((vehicle) => (
+              <tr key={vehicle.id} className="transition-colors hover:bg-[hsl(var(--admin-surface-muted))]">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="relative flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[hsl(var(--admin-surface-muted))]">
+                      <VehicleImage vehicle={vehicle} compact />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="max-w-[240px] truncate text-sm font-semibold text-[hsl(var(--color-content))]">{vehicle.title || 'Untitled vehicle'}</p>
+                      <p className="text-xs text-[hsl(var(--color-content-muted))]">{vehicle.year} · {vehicle.color || 'Colour not set'}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    <StatusBadge status={vehicle.listingStatus} />
+                    {vehicle.status && vehicle.status !== 'AVAILABLE' && vehicle.status !== vehicle.listingStatus && (
+                      <StatusBadge status={vehicle.status} />
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-sm font-bold tabular-nums text-[hsl(var(--color-content))]">
+                  {vehicle.price != null ? formatINR(vehicle.price) : '—'}
+                </td>
+                <td className="px-4 py-3 text-xs text-[hsl(var(--color-content-muted))]">
+                  <p>{vehicle.mileage ? `${formatIndianNumber(vehicle.mileage)} km` : 'Mileage not set'}</p>
+                  <p>{vehicle.fuel || '—'} · {vehicle.transmission || '—'}</p>
+                </td>
+                <td className="px-4 py-3 text-xs text-[hsl(var(--color-content-muted))]">
+                  {vehicle.city ? `${vehicle.city}${vehicle.state ? `, ${vehicle.state}` : ''}` : '—'}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1">
+                    <Link href={`/cars/${vehicle.id}`} aria-label={`View ${vehicle.title || 'vehicle'}`} className="flex h-9 w-9 items-center justify-center rounded-lg text-[hsl(var(--color-content-muted))] hover:bg-[hsl(var(--admin-surface-muted))] hover:text-[hsl(var(--color-content))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]">
+                      <ArrowUpRight size={16} aria-hidden="true" />
+                    </Link>
+                    <Link href={`/admin/vehicles/${vehicle.id}/edit`} aria-label={`Edit ${vehicle.title || 'vehicle'}`} className="flex h-9 w-9 items-center justify-center rounded-lg text-[hsl(var(--color-primary-strong))] hover:bg-[hsl(var(--color-primary)/0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]">
+                      <Pencil size={16} aria-hidden="true" />
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, onClick }: { label: string; value: number; onClick?: () => void }) {
-  const Comp = onClick ? 'button' : 'div';
+/* ------------------------------------------------------------------ */
+/*  Shared image + empty state                                         */
+/* ------------------------------------------------------------------ */
+
+function VehicleImage({ vehicle, compact = false }: { vehicle: AdminVehicle; compact?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const src = vehicle.images?.[0];
+
+  if (!src || failed) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[hsl(var(--admin-surface-muted))] to-[hsl(var(--color-line))]" aria-hidden="true">
+        <Car size={compact ? 18 : 30} className="text-[hsl(var(--color-content-faint))]" />
+      </div>
+    );
+  }
+
   return (
-    <Comp onClick={onClick} className="rounded-2xl border border-line bg-card p-6 text-left" >
-      <p className="text-2xl font-extrabold text-content">{value}</p>
-      <p className="text-sm text-content-muted">{label}</p>
-    </Comp>
+    // Backend media may be local or remote; a plain img keeps both working.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={vehicle.title ? `${vehicle.title} photo` : 'Vehicle photo'}
+      loading="lazy"
+      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function EmptyState({ hasInventory, onClear }: { hasInventory: boolean; onClear: () => void }) {
+  return (
+    <div className="admin-card px-5 py-12 text-center">
+      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-content-faint))]">
+        <Car size={24} aria-hidden="true" />
+      </span>
+      <h2 className="mt-3 text-base font-bold text-[hsl(var(--color-content))]">
+        {hasInventory ? 'No vehicles match these filters' : 'No vehicles have been added yet'}
+      </h2>
+      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[hsl(var(--color-content-muted))]">
+        {hasInventory
+          ? 'Try a different search term or clear the status filter.'
+          : 'Add your first vehicle to begin managing inventory.'}
+      </p>
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+        {hasInventory && (
+          <button type="button" onClick={onClear} className="admin-btn admin-btn-secondary">
+            Clear filters
+          </button>
+        )}
+        <Link href="/admin/vehicles/new" className="admin-btn admin-btn-primary">
+          Add vehicle
+        </Link>
+      </div>
+    </div>
   );
 }

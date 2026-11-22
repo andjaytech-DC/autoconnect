@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/app/server/prisma";
-import { requireDealerStaff } from "@/app/server/authz";
-import { readSessionCookie, verifySession } from "@/app/lib/auth";
-import { backendFetch, isBackendUnreachable, BackendError } from "@/app/lib/backend";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { requireRole } from "@/app/server/authz";
 
 export const runtime = "nodejs";
 
@@ -12,6 +11,7 @@ interface BackendVehicle {
   title: string;
   price: number;
   status: string;
+  listingStatus?: string;
   year: number;
   mileage: number;
   fuel: string;
@@ -22,7 +22,7 @@ interface BackendVehicle {
   images: string[];
   brand?: { name?: string } | null;
   category?: { name?: string } | null;
-  dealer?: { id?: number; businessName?: string } | null;
+  _count?: { leads?: number; testDrives?: number } | null;
 }
 
 /** Map a backend vehicle to the dashboard inventory row. */
@@ -32,6 +32,7 @@ function mapVehicle(v: BackendVehicle) {
     title: v.title,
     price: v.price,
     status: v.status,
+    listingStatus: v.listingStatus ?? null,
     viewCount: 0,
     year: v.year,
     mileage: v.mileage,
@@ -43,49 +44,26 @@ function mapVehicle(v: BackendVehicle) {
     image: Array.isArray(v.images) ? v.images[0] ?? null : null,
     brand: v.brand?.name ?? null,
     category: v.category?.name ?? null,
-    _count: { leads: 0, testDrives: 0 },
+    _count: { leads: v._count?.leads ?? 0, testDrives: v._count?.testDrives ?? 0 },
   };
 }
 
-/**
- * GET /api/dealer/vehicles — dealer's own inventory only.
- * Backed by the NestJS API when reachable.
- */
+/** GET /api/dealer/vehicles — the dealership's own inventory (drafts included). */
 export async function GET(request: Request) {
-  const session = await verifySession(readSessionCookie(request));
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(request, "DEALER", "DEALER_EMPLOYEE");
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
   }
-
-  // 1) NestJS backend (authoritative)
-  if (session.token) {
-    try {
-      const vehicles = await backendFetch<BackendVehicle[]>(
-        "/vehicles/my/listings",
-        { token: session.token },
-      );
-      return NextResponse.json({
-        vehicles: (vehicles ?? []).map(mapVehicle),
-        source: "backend",
-      });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
-    }
+  try {
+    const vehicles = await backendFetch<BackendVehicle[]>("/dealers/me/vehicles", {
+      token: auth.session.token,
+    });
+    return NextResponse.json({
+      vehicles: (vehicles ?? []).map(mapVehicle),
+      source: "backend",
+    });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
-
-  // 2) Local fallback
-  const auth = await requireDealerStaff(request);
-  if (auth instanceof NextResponse) return auth;
-  const vehicles = await prisma.vehicle.findMany({
-    where: { dealerId: auth.dealer!.id },
-    include: {
-      brand: true,
-      category: true,
-      _count: { select: { leads: true, testDrives: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json({ vehicles, source: "local" });
 }

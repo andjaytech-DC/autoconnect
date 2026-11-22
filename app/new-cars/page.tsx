@@ -75,7 +75,7 @@ export default async function NewCarsPage({ searchParams }: { searchParams: Prom
           aria-hidden="true"
         />
         <div className="container relative py-12 lg:py-16">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--color-success)/0.4)] bg-[hsl(var(--color-success)/0.1)] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--color-success))]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--color-success)/0.4)] bg-[hsl(var(--color-success)/0.1)] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
             <Sparkles size={14} aria-hidden="true" />
             Latest Models
           </span>
@@ -88,7 +88,7 @@ export default async function NewCarsPage({ searchParams }: { searchParams: Prom
         </div>
       </section>
 
-      <main className="container flex-1 py-10">
+      <div className="container flex-1 py-10">
         {/* Brand filter chips */}
         <div className="mb-8 flex flex-wrap gap-2" aria-label="Filter by brand">
           <Link
@@ -117,7 +117,7 @@ export default async function NewCarsPage({ searchParams }: { searchParams: Prom
             <p className="mx-auto mt-2 max-w-md text-sm text-[hsl(var(--color-content-muted))]">
               Please check your connection and retry.
             </p>
-            <Link href="/new-cars" className="btn btn-success mt-6">
+            <Link href="/new-cars" className="btn btn-primary mt-6">
               Retry <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
@@ -168,12 +168,12 @@ export default async function NewCarsPage({ searchParams }: { searchParams: Prom
             <p className="mx-auto mt-2 max-w-md text-sm text-[hsl(var(--color-content-muted))]">
               {brand ? `No new cars available from ${brand} at the moment.` : "New car listings will appear here once the inventory is updated."}
             </p>
-            <Link href="/new-cars" className="btn btn-success mt-6">
+            <Link href="/new-cars" className="btn btn-primary mt-6">
               View all brands <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

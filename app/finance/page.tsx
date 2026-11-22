@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import FinanceClient from "@/app/components/finance/FinanceClient";
+import PageHeader from "@/app/components/ui/PageHeader";
 
 export const metadata: Metadata = {
   title: "Car Finance & EMI Calculator — Progressive AutoHub",
@@ -8,14 +9,19 @@ export const metadata: Metadata = {
 
 export default function FinancePage() {
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
-      <section className="bg-slate-950 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-12">
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">Car Finance</h1>
-          <p className="mt-1 text-sm text-slate-400">Calculate your EMI and apply for financing in minutes.</p>
-        </div>
-      </section>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 lg:px-12"><FinanceClient /></main>
+    <div className="flex min-h-screen flex-col bg-[hsl(var(--color-bg))] font-sans text-[hsl(var(--color-content))]">
+      <PageHeader
+        eyebrow="Car finance"
+        title="Car Finance"
+        description="Calculate your EMI and apply for financing in minutes."
+      />
+      <div className="page-container flex-1 py-10">
+        {/* One wizard serves the menu's "Car Loans", "EMI Calculator" and "Apply for Finance" links. */}
+        <span id="loans" className="block scroll-mt-28" aria-hidden="true" />
+        <span id="apply" className="block scroll-mt-28" aria-hidden="true" />
+        <span id="emi-calculator" className="block scroll-mt-28" aria-hidden="true" />
+        <FinanceClient />
+      </div>
     </div>
   );
 }

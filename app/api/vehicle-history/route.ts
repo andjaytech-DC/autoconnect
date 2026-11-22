@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { backendFetch, isBackendUnreachable, BackendError } from "@/app/lib/backend";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
 import { enforceRateLimit } from "@/app/lib/rate-limit";
-import { readSessionCookie, verifySession } from "@/app/lib/auth";
+import { requireRole } from "@/app/server/authz";
 
 export const runtime = "nodejs";
 
 /**
  * Vehicle history checks for one vehicle.
  *
- * Backed by the NestJS VehicleHistory model. A check only reads as VERIFIED when
+ * Backed by the NestJS VehicleHistory model. Writes are limited to ADMIN and to
+ * the dealership that owns the vehicle (enforced in NestJS). A check only reads as VERIFIED when
  * it was recorded against an external authority — operator-entered records stay
  * PENDING in the backend, so this route never has to relabel them.
  */
@@ -105,13 +107,7 @@ export async function GET(request: Request) {
     }));
     return NextResponse.json({ checks });
   } catch (err) {
-    if (!isBackendUnreachable(err) && err instanceof BackendError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    return NextResponse.json(
-      { error: "Vehicle history is temporarily unavailable." },
-      { status: 503 },
-    );
+    return backendErrorResponse(err);
   }
 }
 
@@ -124,12 +120,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const session = await verifySession(readSessionCookie(request));
-  if (!session?.token) {
-    return NextResponse.json(
-      { error: "Sign in to record a history check" },
-      { status: 401 },
-    );
+  // NestJS enforces role and dealership ownership; this is the early gate.
+  const auth = await requireRole(request, "ADMIN", "DEALER");
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
   }
 
   let body: unknown;
@@ -158,7 +153,7 @@ export async function POST(request: Request) {
   try {
     const created = await backendFetch<UiHistoryCheck>("/vehicle-history", {
       method: "POST",
-      token: session.token,
+      token: auth.session.token,
       body: {
         vehicleId: Number(vehicleId),
         ...parsed.data,
@@ -168,12 +163,6 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ check: created }, { status: 201 });
   } catch (err) {
-    if (!isBackendUnreachable(err) && err instanceof BackendError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    return NextResponse.json(
-      { error: "Could not record the history check." },
-      { status: 503 },
-    );
+    return backendErrorResponse(err);
   }
 }

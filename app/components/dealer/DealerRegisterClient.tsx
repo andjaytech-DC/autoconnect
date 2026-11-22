@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { Store, FileText, CheckCircle } from 'lucide-react';
 import { INDIAN_STATES } from '@/app/data/india-states';
 
-const inputCls = 'w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFC700]/40 bg-card text-content min-h-[44px]';
+const inputCls = 'w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]/40 bg-card text-content min-h-[44px]';
 const labelCls = 'block text-xs font-semibold text-content-muted mb-1';
-const errorCls = 'text-xs text-red-400 mt-1';
+const errorCls = 'text-xs text-red-700 mt-1';
 
 interface FieldErrors {
   businessName?: string;
@@ -68,9 +68,9 @@ export default function DealerRegisterClient() {
 
   if (done) return (
     <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 flex items-start gap-4 max-w-2xl">
-      <CheckCircle size={24} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+      <CheckCircle size={24} className="text-emerald-700 flex-shrink-0 mt-0.5" />
       <div>
-        <p className="font-bold text-emerald-400">Application submitted</p>
+        <p className="font-bold text-emerald-700">Application submitted</p>
         <p className="text-sm text-content-muted mt-1">Your dealership application has been submitted and is awaiting admin approval. Vehicle listing will be available after approval.</p>
       </div>
     </div>
@@ -125,7 +125,7 @@ export default function DealerRegisterClient() {
         }
       }}
     >
-      {error && <p className="sm:col-span-2 text-sm text-red-400 bg-red-500/10 rounded-lg p-3">{error}</p>}
+      {error && <p className="sm:col-span-2 text-sm text-red-700 bg-red-500/10 rounded-lg p-3">{error}</p>}
 
       {/* Business Information */}
       <div className="sm:col-span-2">
@@ -212,7 +212,7 @@ export default function DealerRegisterClient() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full sm:w-auto justify-self-start px-6 py-3 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-semibold hover:brightness-110 flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
+          className="w-full sm:w-auto justify-self-start px-6 py-3 bg-[hsl(var(--color-primary))] text-[#15130a] rounded-xl text-sm font-semibold hover:brightness-110 flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
         >
           {submitting ? 'Submitting…' : <><FileText size={16} /> Submit Application</>}
         </button>

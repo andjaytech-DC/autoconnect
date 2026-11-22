@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PageHeader from "@/app/components/ui/PageHeader";
 import Link from "next/link";
-import { BadgePercent, Calculator, CheckCircle2, Loader2, Wallet } from "lucide-react";
+import { BadgePercent, Calculator, CheckCircle2, Loader2 } from "lucide-react";
 import { inr } from "@/app/lib/account";
 
 /** Simple EMI estimate used for the planner preview. */
@@ -79,27 +80,19 @@ export default function LoansPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
-      <main className="flex-1">
-      <div className="mx-auto max-w-6xl px-6 py-12 lg:px-12">
-        <div className="mb-8 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFC700] to-yellow-500 text-[#15130a]">
-            <Wallet size={20} aria-hidden="true" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-content">Car Loan Application</h1>
-            <p className="text-sm text-content-muted">Plan your EMI and apply for financing on the vehicle you want.</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
+      <div className="flex-1">
+      <PageHeader eyebrow="Car loans" title="Car Loan Application" description="Plan your EMI and apply for financing on the vehicle you want." />
+      <div className="page-container py-10">
 
         {success ? (
           <div className="mx-auto max-w-xl rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center">
-            <CheckCircle2 size={44} className="mx-auto text-emerald-400" aria-hidden="true" />
-            <h2 className="mt-4 text-xl font-bold text-emerald-300">Application received</h2>
-            <p className="mt-2 text-sm text-emerald-400/80">{success}</p>
+            <CheckCircle2 size={44} className="mx-auto text-emerald-700" aria-hidden="true" />
+            <h2 className="mt-4 text-xl font-bold text-emerald-800">Application received</h2>
+            <p className="mt-2 text-sm text-emerald-800">{success}</p>
             <Link
               href="/orders"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-6 py-3 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 hover:shadow-xl"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-6 py-3 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 hover:shadow-xl"
             >
               View my orders
             </Link>
@@ -144,7 +137,7 @@ export default function LoansPage() {
                 step={25_000}
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
-                className="w-full accent-[#FFC700]"
+                className="w-full accent-[hsl(var(--color-primary))]"
               />
             </div>
 
@@ -159,7 +152,7 @@ export default function LoansPage() {
                 max={7}
                 value={tenureYears}
                 onChange={(e) => setTenureYears(Number(e.target.value))}
-                className="w-full accent-[#FFC700]"
+                className="w-full accent-[hsl(var(--color-primary))]"
               />
             </div>
 
@@ -181,7 +174,7 @@ export default function LoansPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-6 py-3.5 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 hover:shadow-xl disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-6 py-3.5 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 hover:shadow-xl disabled:opacity-60"
             >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" aria-hidden="true" />
@@ -191,7 +184,7 @@ export default function LoansPage() {
               {loading ? "Submitting…" : "Apply for Loan"}
             </button>
             {error && (
-              <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400" role="alert">
+              <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-700" role="alert">
                 {error}
               </p>
             )}
@@ -203,9 +196,9 @@ export default function LoansPage() {
 
           {/* EMI preview */}
           <div className="rounded-2xl border border-line bg-card p-6">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#FFC700]">EMI planner</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-[hsl(var(--color-primary-strong))]">EMI planner</h3>
             <div className="mt-4 flex items-center gap-3 rounded-xl bg-surface p-4">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFC700] to-yellow-500 text-[#15130a]">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-500 text-[#15130a]">
                 <Calculator size={22} aria-hidden="true" />
               </span>
               <div>
@@ -242,7 +235,7 @@ export default function LoansPage() {
         </div>
         )}
       </div>
-      </main>
+      </div>
     </div>
   );
 }

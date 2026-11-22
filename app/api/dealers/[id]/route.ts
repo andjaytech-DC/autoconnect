@@ -1,98 +1,48 @@
 /**
- * GET /api/dealers/[id]
+ * GET /api/dealers/[id] — one approved dealer.
  *
- * Returns a single dealer by numeric id. Backed by the NestJS API when
- * reachable, falling back to mock data otherwise. The response shape is
- * kept stable so the frontends never have to change.
+ * The id is validated as a positive integer before use: `backendFetch`
+ * interpolates it into the backend URL and Next.js URL-decodes route params, so
+ * `../admin` would otherwise target a different backend endpoint.
  *
- * The `id` is validated as a positive integer before use, which matters more
- * than it looks: `backendFetch` interpolates it straight into the backend URL
- * and Next.js URL-decodes route params, so a value like `../admin` turned
- * `/dealers/../admin` into a request for an entirely different backend
- * endpoint — an unauthenticated read primitive for whatever path was supplied.
- * Every other dynamic route in this app validates its id; this one did not.
- *
- * Contact details (phone, and the account email behind `user.email`) are
- * released only to a signed-in session — see the note in ./route.ts. The
- * local fallback dataset carries invented contact details, so it is gated on
- * the same rule rather than being treated as a loophole.
+ * NestJS answers 404 for dealers that are not approved and withholds the phone
+ * from anonymous callers; this route forwards the visitor's token.
  */
 
 import { NextResponse } from "next/server";
-import { dealers as mockDealers } from "@/app/data/dealers";
-import {
-  backendFetch,
-  isBackendUnreachable,
-  BackendError,
-} from "@/app/lib/backend";
-import { requireUser } from "@/app/server/authz";
-import { mapBackendDealer } from "../route";
+
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { readSessionCookie, verifySession } from "@/app/lib/auth";
+import { mapDealer } from "@/app/lib/nest-mappers";
+import type { NestDealer } from "@/app/lib/nest-types";
+
+export const runtime = "nodejs";
 
 interface DealerRouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(
-  request: Request,
-  { params }: DealerRouteParams,
-) {
+export async function GET(request: Request, { params }: DealerRouteParams) {
   const { id } = await params;
-
-  // Only a bare positive integer is a valid dealer id. Anything else — a
-  // traversal sequence, a non-numeric string, a negative number — is refused
-  // before it can reach the backend URL.
   if (!/^\d+$/.test(id) || Number.parseInt(id, 10) <= 0) {
-    return NextResponse.json(
-      { error: "Invalid dealer id", code: "INVALID_ID" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid dealer id", code: "INVALID_ID" }, { status: 400 });
   }
   const dealerId = Number.parseInt(id, 10);
+  const session = await verifySession(readSessionCookie(request));
 
-  // Any valid session unlocks the contact fields; role is irrelevant.
-  const canSeeContact = !((await requireUser(request)) instanceof NextResponse);
-
-  const redactContacts = (dealer: (typeof mockDealers)[number]) => ({
-    ...dealer,
-    phone: canSeeContact ? dealer.phone : null,
-    email: canSeeContact ? dealer.email : null,
-  });
-
-  // 1) NestJS backend (authoritative)
   try {
-    const dealer = await backendFetch<Parameters<typeof mapBackendDealer>[0]>(
-      `/dealers/${dealerId}`,
-    );
+    const dealer = await backendFetch<NestDealer>(`/dealers/${dealerId}`, { token: session?.token ?? null });
+    const canSeeContact = Boolean(dealer?.phone);
     return NextResponse.json({
-      dealer: mapBackendDealer(dealer, canSeeContact),
-      contactAvailable: canSeeContact,
+      dealer: mapDealer(dealer, { canSeeContact }),
+      contactAvailable: canSeeContact || Boolean(session?.token),
       source: "backend",
     });
   } catch (err) {
-    if (!isBackendUnreachable(err) && err instanceof BackendError) {
-      if (err.status === 404) {
-        return NextResponse.json(
-          { error: "Dealer not found", code: "NOT_FOUND" },
-          { status: 404 },
-        );
-      }
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
+    const res = backendErrorResponse(err);
+    return res.status === 404
+      ? NextResponse.json({ error: "Dealer not found", code: "NOT_FOUND" }, { status: 404 })
+      : res;
   }
-
-  // 2) Local fallback (mock data)
-  const dealer = mockDealers.find((d) => String(d.id) === id);
-
-  if (!dealer) {
-    return NextResponse.json(
-      { error: "Dealer not found", code: "NOT_FOUND" },
-      { status: 404 },
-    );
-  }
-
-  return NextResponse.json({
-    dealer: redactContacts(dealer),
-    contactAvailable: canSeeContact,
-    source: "local",
-  });
 }

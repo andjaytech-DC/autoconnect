@@ -44,12 +44,12 @@ export default async function SellPage({
 
   return (
     <div className="bg-glass-scene min-h-screen font-sans text-[hsl(var(--color-content))]">
-      <main className="mx-auto w-full max-w-7xl px-5 pb-24 pt-12 sm:px-6 lg:px-10 lg:pt-16">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.15fr] lg:gap-14">
+      <div className="mx-auto w-full max-w-7xl px-5 pb-24 pt-12 sm:px-6 lg:px-10 lg:pt-16">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.15fr] lg:gap-14">
           {/* ---------------------------------------------------------- */}
           {/*  Copy                                                       */}
           {/* ---------------------------------------------------------- */}
-          <div>
+          <div className="min-w-0">
             <span className="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--color-primary-strong))]">
               Sell your car
             </span>
@@ -121,11 +121,11 @@ export default async function SellPage({
           {/* ---------------------------------------------------------- */}
           {/*  Form                                                       */}
           {/* ---------------------------------------------------------- */}
-          <div>
+          <div className="min-w-0">
             <SellForm initialRegistration={registration} />
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

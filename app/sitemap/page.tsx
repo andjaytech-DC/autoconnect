@@ -66,14 +66,14 @@ const groups = [
 
 export default function SitemapPage() {
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
 
       <section className="max-w-7xl mx-auto w-full px-6 lg:px-12 py-20" aria-label="Sitemap">
         <h1 className="text-4xl font-extrabold tracking-tight mb-12">Sitemap</h1>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
           {groups.map((group) => (
             <nav key={group.title} aria-label={group.title}>
-              <h2 className="text-xs uppercase tracking-widest font-bold text-[#FFC700] mb-4">
+              <h2 className="text-xs uppercase tracking-widest font-bold text-[hsl(var(--color-primary-strong))] mb-4">
                 {group.title}
               </h2>
               <ul className="space-y-3">
@@ -81,7 +81,7 @@ export default function SitemapPage() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-content-muted hover:text-[#FFC700] transition-colors"
+                      className="text-sm text-content-muted hover:text-[hsl(var(--color-primary-strong))] transition-colors"
                     >
                       {link.label}
                     </Link>

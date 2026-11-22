@@ -91,13 +91,13 @@ export default async function DealersPage({ searchParams }: DealersPageProps) {
     city !== "All Cities" || q.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
 
 
       {/* =========================================================
           HERO
       ========================================================== */}
-      <section className="relative overflow-hidden bg-[hsl(var(--color-ink-900))] text-white">
+      <section className="relative overflow-hidden bg-ink-900 text-white">
 
         {/* Decorative background */}
         <div
@@ -112,22 +112,22 @@ export default async function DealersPage({ searchParams }: DealersPageProps) {
 
           <div className="max-w-4xl mx-auto text-center">
 
-            {/* Badge */}
-            <span className="inline-flex items-center gap-2 bg-[hsl(var(--color-primary)/0.12)] border border-[hsl(var(--color-primary)/0.4)] text-[hsl(var(--color-primary))] text-xs font-bold uppercase tracking-[0.18em] px-4 py-2 rounded-full">
+            {/* Badge - solid background for contrast */}
+            <span className="inline-flex items-center gap-2 bg-[hsl(var(--color-primary))] border border-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))] text-xs font-bold uppercase tracking-[0.18em] px-4 py-2 rounded-full shadow-[0_4px_14px_rgba(201,162,75,0.3)]">
               <MapPin size={14} aria-hidden="true" />
               Progressive AutoHub Network
             </span>
 
-            {/* Heading */}
+            {/* Heading - solid amber for "near you." for guaranteed readability */}
             <h1 className="mt-7 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08]">
               Find a trusted dealer{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--color-primary))] via-yellow-300 to-yellow-300">
+              <span className="text-[hsl(var(--color-primary))]">
                 near you.
               </span>
             </h1>
 
-            {/* Description */}
-            <p className="mt-6 text-base sm:text-lg lg:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
+            {/* Description - higher opacity for readability */}
+            <p className="mt-6 text-base sm:text-lg lg:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
               Explore certified showrooms, compare dealer ratings,
               browse available inventory, and connect with a
               Progressive AutoHub dealer in your city.
@@ -214,7 +214,7 @@ export default async function DealersPage({ searchParams }: DealersPageProps) {
       {/* =========================================================
           MAIN
       ========================================================== */}
-      <main className="flex-1">
+      <div className="flex-1">
 
         <section className="max-w-7xl mx-auto w-full px-6 lg:px-12 py-14 lg:py-20">
 
@@ -427,12 +427,12 @@ export default async function DealersPage({ searchParams }: DealersPageProps) {
               NETWORK FOOTER
           ====================================================== */}
           {filteredDealers.length > 0 && (
-            <div className="mt-14 rounded-2xl bg-[hsl(var(--color-ink-900))] text-white px-6 py-8 sm:px-8">
+            <div className="mt-14 rounded-2xl bg-ink-900 text-white px-6 py-8 sm:px-8">
 
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
                 <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[hsl(var(--color-primary-strong))] font-bold">
+                  <p className="text-xs uppercase tracking-[0.16em] text-[hsl(var(--color-primary))] font-bold">
                     Progressive AutoHub
                   </p>
 
@@ -440,7 +440,7 @@ export default async function DealersPage({ searchParams }: DealersPageProps) {
                     Looking for your next car?
                   </h3>
 
-                  <p className="mt-2 text-sm text-[hsl(var(--color-content-muted))] max-w-xl">
+                  <p className="mt-2 text-sm text-white/80 max-w-xl">
                     Explore certified inventory from our dealer
                     network and find the right car for your budget.
                   </p>
@@ -462,7 +462,7 @@ export default async function DealersPage({ searchParams }: DealersPageProps) {
           )}
 
         </section>
-      </main>
+      </div>
 
     </div>
   );

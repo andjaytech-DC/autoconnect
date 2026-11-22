@@ -67,26 +67,26 @@ export default async function NewCarDetailPage({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0d1117] flex flex-col font-sans text-white">
-        <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-20 lg:px-12 text-center">
+      <div className="min-h-screen bg-ink-950 flex flex-col font-sans text-white">
+        <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-20 lg:px-12 text-center">
           <h1 className="text-xl font-bold">Unable to load car</h1>
-          <p className="mt-2 text-sm text-slate-400">Please check your connection and retry.</p>
-          <Link href="/new-cars" className="mt-6 inline-block rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700">
+          <p className="mt-2 text-sm text-slate-300">Please check your connection and retry.</p>
+          <Link href="/new-cars" className="btn btn-primary mt-6">
             Back to New Cars
           </Link>
-        </main>
+        </div>
       </div>
     );
   }
   if (!car) {
     return (
-      <div className="min-h-screen bg-[#0d1117] flex flex-col font-sans text-white">
-        <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-20 lg:px-12 text-center">
+      <div className="min-h-screen bg-ink-950 flex flex-col font-sans text-white">
+        <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-20 lg:px-12 text-center">
           <h1 className="text-xl font-bold">Car not found</h1>
-          <Link href="/new-cars" className="mt-6 inline-block rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700">
+          <Link href="/new-cars" className="btn btn-primary mt-6">
             Back to New Cars
           </Link>
-        </main>
+        </div>
       </div>
     );
   }
@@ -97,11 +97,11 @@ export default async function NewCarDetailPage({
   const imageUrl = resolveImage(car.imageUrl ?? (Array.isArray(car.images) ? car.images[0] : null));
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex flex-col font-sans text-white">
+    <div className="min-h-screen bg-ink-950 flex flex-col font-sans text-white">
       {/* ─── HERO ─── */}
       <section className="relative overflow-hidden">
         {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#161b22] via-[#0d1117] to-[#0d1117]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-800 via-ink-950 to-ink-950" />
 
         {/* Subtle background photograph sliding */}
         <div className="absolute inset-0 opacity-[0.04] overflow-hidden" aria-hidden="true">
@@ -113,18 +113,18 @@ export default async function NewCarDetailPage({
 
         <div className="relative mx-auto max-w-7xl px-6 pt-12 pb-8 lg:px-12 lg:pt-16 lg:pb-12">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-slate-500 mb-8" aria-label="Breadcrumb">
-            <Link href="/new-cars" className="hover:text-slate-300 transition-colors">New Cars</Link>
+          <nav className="flex items-center gap-2 text-xs text-slate-300 mb-8" aria-label="Breadcrumb">
+            <Link href="/new-cars" className="hover:text-slate-200 transition-colors">New Cars</Link>
             <span>/</span>
-            <span className="text-slate-400">{car.brandName}</span>
+            <span className="text-slate-300">{car.brandName}</span>
             <span>/</span>
-            <span className="text-slate-300">{car.model}</span>
+            <span className="text-slate-200">{car.model}</span>
           </nav>
 
           <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-end">
             {/* Vehicle image - oversized covering hero */}
             <div className="relative">
-              <div className="aspect-[16/10] rounded-2xl overflow-hidden bg-[#161b22] border border-white/5">
+              <div className="aspect-[16/10] rounded-2xl overflow-hidden bg-ink-800 border border-white/5">
                 {imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -133,7 +133,7 @@ export default async function NewCarDetailPage({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-600">
+                  <div className="w-full h-full flex items-center justify-center text-slate-400">
                     <Car size={64} />
                   </div>
                 )}
@@ -149,14 +149,14 @@ export default async function NewCarDetailPage({
               <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
                 {car.brandName} {car.model}
               </h1>
-              <p className="mt-2 text-lg text-slate-400">{car.variant}</p>
+              <p className="mt-2 text-lg text-slate-300">{car.variant}</p>
               <p className="mt-4 text-4xl font-extrabold text-white">
                 ₹{price.toLocaleString("en-IN")}
-                <span className="text-sm font-normal text-slate-500 ml-2">ex-showroom</span>
+                <span className="text-sm font-normal text-slate-300 ml-2">ex-showroom</span>
               </p>
               {onRoad && (
-                <p className="mt-1 text-sm text-slate-500">
-                  On-road: <span className="text-slate-300 font-medium">₹{onRoad.toLocaleString("en-IN")}</span>
+                <p className="mt-1 text-sm text-slate-300">
+                  On-road: <span className="text-slate-200 font-medium">₹{onRoad.toLocaleString("en-IN")}</span>
                 </p>
               )}
             </div>
@@ -179,9 +179,9 @@ export default async function NewCarDetailPage({
           ].map((spec) => {
             const Icon = spec.icon;
             return (
-              <div key={spec.label} className="rounded-xl border border-white/5 bg-[#161b22] p-4">
+              <div key={spec.label} className="rounded-xl border border-white/5 bg-ink-800 p-4">
                 <Icon size={18} className="text-emerald-400 mb-2" />
-                <p className="text-xs text-slate-500">{spec.label}</p>
+                <p className="text-xs text-slate-300">{spec.label}</p>
                 <p className="font-semibold text-sm text-white mt-0.5">{spec.value}</p>
               </div>
             );
@@ -192,10 +192,10 @@ export default async function NewCarDetailPage({
       {/* ─── FEATURES ─── */}
       {(car.features ?? []).length > 0 && (
         <section className="relative mx-auto w-full max-w-7xl px-6 pb-10 lg:px-12">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Key Features</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">Key Features</h2>
           <div className="flex flex-wrap gap-2">
             {(car.features ?? []).map((f) => (
-              <span key={f} className="px-3 py-1.5 bg-[#161b22] border border-white/5 rounded-lg text-sm text-slate-300">
+              <span key={f} className="px-3 py-1.5 bg-ink-800 border border-white/5 rounded-lg text-sm text-slate-200">
                 {f}
               </span>
             ))}
@@ -206,7 +206,7 @@ export default async function NewCarDetailPage({
       {/* ─── EV SPECS ─── */}
       {car.isElectric && (
         <section className="relative mx-auto w-full max-w-7xl px-6 pb-10 lg:px-12">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Electric Specifications</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">Electric Specifications</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               { label: "Battery", value: car.batteryCapacityKwh ? `${car.batteryCapacityKwh} kWh` : "—" },
@@ -214,8 +214,8 @@ export default async function NewCarDetailPage({
               { label: "Charging", value: car.chargingType ?? "—" },
               { label: "Fast Charging", value: car.fastCharging ? "Yes" : "No" },
             ].map((spec) => (
-              <div key={spec.label} className="rounded-xl border border-white/5 bg-[#161b22] p-4">
-                <p className="text-xs text-slate-500">{spec.label}</p>
+              <div key={spec.label} className="rounded-xl border border-white/5 bg-ink-800 p-4">
+                <p className="text-xs text-slate-300">{spec.label}</p>
                 <p className="font-semibold text-sm text-white mt-0.5">{spec.value}</p>
               </div>
             ))}
@@ -225,14 +225,14 @@ export default async function NewCarDetailPage({
 
       {/* ─── CTA ─── */}
       <section className="relative mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12">
-        <div className="rounded-2xl border border-white/5 bg-[#161b22] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="rounded-2xl border border-white/5 bg-ink-800 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-white">Interested in the {car.brandName} {car.model}?</h3>
-            <p className="text-sm text-slate-400 mt-1">Get in touch with our team for test drive and booking.</p>
+            <p className="text-sm text-slate-300 mt-1">Get in touch with our team for test drive and booking.</p>
           </div>
           <Link
             href="/contact"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors"
+            className="btn btn-primary gap-2"
           >
             Contact Us <ArrowRight size={16} />
           </Link>
