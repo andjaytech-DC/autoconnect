@@ -36,13 +36,13 @@ function AppComingSoonCard() {
   return (
     <div
       id="mobile-app"
-      className="group relative flex h-full scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] p-5 transition-all duration-300 hover:border-[hsl(var(--color-info)/0.4)] hover:shadow-[var(--shadow-subtle)]"
+      className="group relative flex h-full scroll-mt-24 flex-col overflow-hidden bento-tile p-5 transition-all duration-300 hover:border-[hsl(var(--color-info)/0.4)] hover:shadow-[var(--shadow-subtle)]"
     >
       <div className="mb-3 flex items-center gap-2">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[hsl(var(--color-info))]/0.12">
           <Smartphone size={13} className="text-[hsl(var(--color-info))]" aria-hidden="true" />
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--color-info))]">
+        <span className="text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--color-info))]">
           Mobile App
         </span>
       </div>
@@ -74,7 +74,7 @@ function AppComingSoonCard() {
               </svg>
             )}
             <span className="text-left">
-              <span className="block text-[9px] leading-tight text-[hsl(var(--color-content-muted))]">
+              <span className="block text-xs leading-tight text-[hsl(var(--color-content-muted))]">
                 Coming soon to
               </span>
               <span className="block text-xs font-bold text-[hsl(var(--color-content))]">
@@ -94,12 +94,12 @@ function AppComingSoonCard() {
 /* ------------------------------------------------------------------ */
 function DealerPartnerCard() {
   return (
-    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] p-5 transition-all duration-300 hover:border-[hsl(var(--color-primary)/0.5)] hover:shadow-[var(--shadow-subtle)]">
+    <div className="group relative flex h-full flex-col overflow-hidden bento-tile p-5 transition-all duration-300 hover:border-[hsl(var(--color-primary)/0.5)] hover:shadow-[var(--shadow-subtle)]">
       <div className="mb-3 flex items-center gap-2">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[hsl(var(--color-primary))]/0.15">
           <Building2 size={13} className="text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[hsl(var(--color-primary-strong))]">
+        <span className="text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--color-primary-strong))]">
           Dealers &amp; Partners
         </span>
       </div>
@@ -112,21 +112,21 @@ function DealerPartnerCard() {
       <div className="mt-auto flex flex-wrap gap-x-5 gap-y-2 pt-4 text-xs font-bold text-[hsl(var(--color-primary-strong))]">
         <Link
           href="/dealer/register"
-          className="inline-flex items-center gap-1 transition-all hover:gap-1.5"
+          className="inline-flex min-h-11 items-center gap-1 transition-all hover:gap-1.5"
         >
           Register as Dealer
           <ArrowUpRight size={12} aria-hidden="true" />
         </Link>
         <Link
           href="/portal/dealer"
-          className="inline-flex items-center gap-1 transition-all hover:gap-1.5"
+          className="inline-flex min-h-11 items-center gap-1 transition-all hover:gap-1.5"
         >
           Dealer Portal
           <ArrowUpRight size={12} aria-hidden="true" />
         </Link>
         <Link
           href="/dealers"
-          className="inline-flex items-center gap-1 transition-all hover:gap-1.5"
+          className="inline-flex min-h-11 items-center gap-1 transition-all hover:gap-1.5"
         >
           Find a Dealer
           <ArrowUpRight size={12} aria-hidden="true" />
@@ -146,7 +146,7 @@ const regions: string[] = ["India"];
 /* ------------------------------------------------------------------ */
 function FooterHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.15em] text-[hsl(var(--color-content-muted))]">
+    <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-[hsl(var(--color-content-muted))]">
       {children}
     </h2>
   );
@@ -156,7 +156,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="block rounded-sm py-1.5 text-[13px] leading-5 text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-bg))]"
+      className="block rounded-sm py-3 text-[13px] lg:py-1.5 leading-5 text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-footer))]"
     >
       {children}
     </Link>
@@ -171,12 +171,12 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
 
   return (
     <footer
-      className="relative z-10 mt-auto overflow-hidden bg-[hsl(var(--color-bg))]"
+      className="relative z-10 mt-auto overflow-hidden bg-[hsl(var(--color-footer))]"
       aria-label="Progressive AutoHub footer"
     >
       {/* Single hairline accent — replaces the old multi-blob ambient glow. */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--color-primary))]/50 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(var(--color-primary))] to-transparent"
         aria-hidden="true"
       />
 
@@ -184,7 +184,7 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
         {/* ========================================================= */}
         {/*  ENGAGEMENT ROW: newsletter · app · dealers & partners      */}
         {/* ========================================================= */}
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 md:[&>*:first-child]:col-span-2 lg:[&>*:first-child]:col-span-1">
           <NewsletterCard />
           <AppComingSoonCard />
           <DealerPartnerCard />
@@ -196,15 +196,15 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
         <ul className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-4 py-3">
           <li className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-content-muted))]">
             <ShieldCheck size={14} className="text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
-            Trusted platform
+            Showroom in Delhi
           </li>
           <li className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-content-muted))]">
             <BadgeCheck size={14} className="text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
-            Verified cars
+            Transparent pricing
           </li>
           <li className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-content-muted))]">
             <MapPin size={14} className="text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
-            Verified dealers
+            Dealer network
           </li>
           {rating && rating.count > 0 && (
             <li className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-content-muted))] sm:ml-auto">
@@ -222,9 +222,9 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
         {/* ========================================================= */}
         {/*  MAIN FOOTER GRID                                           */}
         {/* ========================================================= */}
-        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-6 lg:gap-8">
+        <div className="mt-10 grid gap-8 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 lg:gap-8">
           {/* Brand */}
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-2 md:col-span-4 lg:col-span-2">
             <Link
               href="/"
               className="group mb-4 inline-flex items-center gap-2.5"
@@ -232,7 +232,7 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
             >
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-600 text-lg font-extrabold text-[hsl(var(--color-primary-foreground))] shadow-md shadow-[hsl(var(--color-primary)/0.25)] transition-transform duration-300 group-hover:scale-105"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--color-primary))] to-yellow-600 text-lg font-extrabold text-[hsl(var(--color-primary-foreground))] shadow-md shadow-[hsl(var(--color-primary)/0.25)] transition-transform duration-300 group-hover:scale-105"
               >
                 P
               </span>
@@ -240,7 +240,7 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
                 <span className="block text-base font-extrabold tracking-tight text-[hsl(var(--color-content))]">
                   Progressive
                 </span>
-                <span className="-mt-0.5 block text-[10px] font-bold uppercase tracking-[0.22em] text-[hsl(var(--color-primary-strong))]">
+                <span className="-mt-0.5 block text-xs font-bold uppercase tracking-[0.22em] text-[hsl(var(--color-primary-strong))]">
                   AutoHub
                 </span>
               </span>
@@ -254,14 +254,14 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
             <div className="mt-5 flex flex-wrap gap-2">
               <Link
                 href="/cars"
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-4 py-2 text-xs font-bold text-[hsl(var(--color-primary-foreground))] shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-105"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-4 py-2 text-xs font-bold text-[hsl(var(--color-primary-foreground))] shadow-sm transition-all hover:-translate-y-0.5 hover:brightness-105"
               >
                 Browse Cars
                 <ArrowUpRight size={13} aria-hidden="true" />
               </Link>
               <Link
                 href="/sell"
-                className="inline-flex items-center gap-2 rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-4 py-2 text-xs font-bold text-[hsl(var(--color-content))] transition-all hover:border-[hsl(var(--color-line-hover))] hover:bg-[hsl(var(--color-surface-strong))]"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-4 py-2 text-xs font-bold text-[hsl(var(--color-content))] transition-all hover:border-[hsl(var(--color-line-hover))] hover:bg-[hsl(var(--color-surface-strong))]"
               >
                 Sell Your Car
               </Link>
@@ -340,10 +340,10 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
         {/* ========================================================= */}
         {/*  CONTACT STRIP (compact)                                    */}
         {/* ========================================================= */}
-        <address className="mt-8 grid gap-3 rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-4 py-4 not-italic sm:grid-cols-3">
+        <address className="mt-8 grid gap-3 bento-tile px-4 py-4 not-italic sm:grid-cols-3">
           <a
             href={telHref(SUPPORT_PHONE)}
-            className="group flex items-start gap-2.5 text-xs text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))]"
+            className="group flex min-h-11 items-start gap-2.5 text-xs text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))]"
           >
             <Phone size={14} className="mt-0.5 shrink-0 text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
             <span>
@@ -358,7 +358,7 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
           </a>
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="group flex items-start gap-2.5 break-all text-xs text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))]"
+            className="group flex min-h-11 items-start gap-2.5 break-all text-xs text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))]"
           >
             <Mail size={14} className="mt-0.5 shrink-0 text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
             <span className="font-semibold text-[hsl(var(--color-content))] transition-colors group-hover:text-[hsl(var(--color-primary-strong))]">
@@ -385,7 +385,7 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-[11px] font-medium text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))]"
+                    className="inline-flex min-h-11 items-center text-xs font-medium text-[hsl(var(--color-content-muted))] transition-colors hover:text-[hsl(var(--color-primary-strong))]"
                   >
                     {link.label}
                   </Link>
@@ -393,7 +393,7 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
               ))}
             </ul>
             <span className="hidden h-3 w-px bg-[hsl(var(--color-line))] sm:block" aria-hidden="true" />
-            <span className="flex items-center gap-1.5 text-[11px] text-[hsl(var(--color-content-muted))]">
+            <span className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-content-muted))]">
               <Globe size={13} aria-hidden="true" />
               Region:
               {regions.map((region) => (
@@ -409,7 +409,7 @@ export default function Footer({ rating }: { rating?: SiteRating | null }) {
         </div>
 
         {/* Disclaimer */}
-        <p className="mt-5 text-[10px] leading-5 text-[hsl(var(--color-content-muted))]">
+        <p className="mt-5 text-xs leading-5 text-[hsl(var(--color-content-muted))]">
           <strong className="font-semibold text-[hsl(var(--color-content))]">Disclaimer:</strong>{" "}
           Prices, specifications, vehicle availability and other information displayed on Progressive
           AutoHub may change without notice. Vehicle images may be representative unless otherwise

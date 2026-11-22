@@ -19,9 +19,24 @@ export const BRAND_SLUGS = [
   "kia",
   "tesla",
   "mg",
+  "maruti",
+  "tata",
 ] as const;
 
 export type BrandSlug = (typeof BRAND_SLUGS)[number];
+
+/** Display names where simple capitalisation is wrong (BMW, MG, Mercedes-Benz...). */
+const BRAND_LABELS: Record<string, string> = {
+  bmw: "BMW",
+  mg: "MG",
+  mercedes: "Mercedes-Benz",
+  maruti: "Maruti Suzuki",
+  tata: "Tata Motors",
+};
+
+export function brandLabel(slug: string): string {
+  return BRAND_LABELS[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
+}
 
 /* Legacy navbar/mega-menu exports were removed — the Navbar now renders
    desktop + mobile purely from `primaryNav` below, keeping the menu a
@@ -136,7 +151,7 @@ export const primaryNav: NavItem[] = [
       {
         title: "Popular Brands",
         items: BRAND_SLUGS.slice(0, 6).map((slug) => ({
-          label: slug.charAt(0).toUpperCase() + slug.slice(1),
+          label: brandLabel(slug),
           href: `/brands/${slug}`,
         })),
       },
@@ -203,6 +218,8 @@ export const ACCOUNT_LINKS: NavChild[] = [
   { label: "My Dashboard", href: "/dashboard" },
   { label: "My Orders", href: "/orders" },
   { label: "My Bookings", href: "/bookings" },
+  { label: "My Service Bookings", href: "/services/my-bookings" },
+  { label: "My Insurance Enquiries", href: "/insurance/my-enquiries" },
   { label: "Shortlisted Cars", href: "/wishlist" },
 ];
 

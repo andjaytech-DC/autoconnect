@@ -24,7 +24,7 @@ export function SellValuationSection() {
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
                 href="/sell"
-                className="inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--color-primary))] px-5 py-2.5 text-sm font-bold text-[hsl(var(--color-primary-foreground))] transition hover:brightness-105 hover:shadow-[var(--shadow-elevated)]"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[hsl(var(--color-primary))] px-5 py-2.5 text-sm font-bold text-[hsl(var(--color-primary-foreground))] transition hover:brightness-105 hover:shadow-[var(--shadow-elevated)]"
               >
                 Sell My Car <ArrowRight size={14} aria-hidden="true" />
               </Link>
@@ -34,20 +34,23 @@ export function SellValuationSection() {
             <h3 className="text-sm font-bold text-[hsl(var(--color-content))]">Quick start</h3>
             <p className="mt-1 text-xs text-[hsl(var(--color-content-muted))]">Start with your registration number.</p>
             <form action="/sell" className="mt-3">
-              <div className="flex min-h-10 items-center rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] px-3 focus-within:border-[hsl(var(--color-primary))] focus-within:ring-2 focus-within:ring-[hsl(var(--color-focus)/0.2)] transition-colors">
-                <span className="mr-2 text-sm font-bold text-[hsl(var(--color-primary-strong))]">IND</span>
+              <div className="flex min-h-11 items-center rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] px-3 focus-within:border-[hsl(var(--color-primary))] focus-within:ring-2 focus-within:ring-[hsl(var(--color-focus)/0.2)] transition-colors">
+                <span className="mr-2 text-sm font-bold text-[hsl(var(--color-primary-strong))]" aria-hidden="true">IND</span>
                 <label htmlFor="hero-reg" className="sr-only">Registration number</label>
                 <input
                   id="hero-reg"
                   name="q"
                   type="text"
                   placeholder="DL 03 AB XXXX"
-                  className="w-full bg-transparent text-sm text-[hsl(var(--color-content))] outline-none placeholder:text-[hsl(var(--color-content-faint))]"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  className="min-h-11 w-full bg-transparent text-sm text-[hsl(var(--color-content))] outline-none placeholder:text-[hsl(var(--color-content-faint))]"
                 />
               </div>
               <button
                 type="submit"
-                className="mt-3 w-full rounded-lg bg-[hsl(var(--color-primary))] py-2 text-sm font-bold text-[hsl(var(--color-primary-foreground))] transition hover:brightness-105"
+                className="mt-3 min-h-11 w-full rounded-lg bg-[hsl(var(--color-primary))] py-2 text-sm font-bold text-[hsl(var(--color-primary-foreground))] transition hover:brightness-105"
               >
                 Get Free Valuation
               </button>

@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "All Cars — Progressive AutoHub",
   description:
-    "Browse every certified pre-owned car in stock. Filter by body type, brand and budget.",
+    "Browse every pre-owned car in stock. Filter by body type, brand and budget.",
 };
 
 export default function CarsPage() {
@@ -21,15 +21,15 @@ export default function CarsPage() {
           className="pointer-events-none absolute -right-32 top-0 h-[320px] w-[320px] rounded-full bg-amber-200/30 blur-[100px]"
           aria-hidden="true"
         />
-        <div className="container relative py-10 lg:py-14">
+        <div className="container relative py-8 lg:py-12">
           <span className="eyebrow inline-flex items-center rounded-full border border-[hsl(var(--color-primary)/0.4)] bg-[hsl(var(--color-primary)/0.12)] px-3 py-1.5">
             Full Showroom
           </span>
           <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
-            Browse every certified car
+            Browse every car
           </h1>
           <p className="mt-3 max-w-xl text-base text-[hsl(var(--color-content-muted))]">
-            Pre-owned vehicles with a recorded inspection and a transparent price.
+            Pre-owned vehicles with clear details and a transparent price.
           </p>
         </div>
       </section>

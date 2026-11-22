@@ -84,7 +84,7 @@ export default function CarCheckLookup() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-6 py-3 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl disabled:opacity-60"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-6 py-3 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl disabled:opacity-60"
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
@@ -118,7 +118,7 @@ export default function CarCheckLookup() {
         <article className="mt-6 overflow-hidden rounded-2xl border border-line bg-card">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-divider bg-surface px-6 py-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#FFC700]">
+              <p className="text-xs font-bold uppercase tracking-wider text-[hsl(var(--color-primary-strong))]">
                 Inspection report
               </p>
               <h3 className="mt-1 text-lg font-bold text-content">
@@ -129,7 +129,7 @@ export default function CarCheckLookup() {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-extrabold text-[#FFC700]">
+              <p className="text-3xl font-extrabold text-[hsl(var(--color-primary-strong))]">
                 {report.overallScore}
                 <span className="text-base text-content-muted">/100</span>
               </p>
@@ -146,7 +146,7 @@ export default function CarCheckLookup() {
                 </div>
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#FFC700] to-emerald-500"
+                    className="h-full rounded-full bg-gradient-to-r from-[hsl(var(--color-primary))] to-emerald-500"
                     style={{ width: `${Math.max(0, Math.min(100, s.score))}%` }}
                   />
                 </div>

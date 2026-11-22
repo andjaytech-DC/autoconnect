@@ -33,6 +33,13 @@ export interface BackendFetchOptions {
   token?: string | null;
   body?: unknown;
   timeoutMs?: number;
+  /**
+   * Return the whole `{ success, data, meta, … }` envelope instead of just
+   * `data`. Needed by paginated lists, whose totals live in `meta`.
+   */
+  raw?: boolean;
+  /** Return the response body as plain text (e.g. a CSV export) instead of parsing JSON. */
+  text?: boolean;
 }
 
 /**
@@ -68,6 +75,7 @@ export async function backendFetch<T = unknown>(
   }
 
   const text = await res.text();
+  if (options.text && res.ok) return text as T;
   let json: unknown = null;
   try {
     json = text ? JSON.parse(text) : null;
@@ -87,6 +95,7 @@ export async function backendFetch<T = unknown>(
     );
   }
 
+  if (options.raw) return json as T;
   const record = (json ?? {}) as Record<string, unknown>;
   if (record && typeof record === "object" && "data" in record) {
     return record.data as T;

@@ -36,7 +36,7 @@ async function jsonGet<T>(url: string, fallback: T): Promise<T> {
 function Stat({ icon: Icon, value, label }: { icon: React.ComponentType<{ size?: number; className?: string }>; value: number | string; label: string }) {
   return (
     <div className="rounded-2xl border border-line bg-card p-4 sm:p-6">
-      <Icon size={20} className="text-[#FFC700]" />
+      <Icon size={20} className="text-primary-strong" />
       <p className="mt-3 text-2xl sm:text-3xl font-extrabold text-content">{value}</p>
       <p className="text-xs sm:text-sm text-content-muted">{label}</p>
     </div>
@@ -129,7 +129,7 @@ export default function DealerDashboardClient({ role }: { role: string }) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFC700] mx-auto mb-4" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-sm text-content-muted">Loading your dashboard…</p>
         </div>
       </div>
@@ -139,15 +139,15 @@ export default function DealerDashboardClient({ role }: { role: string }) {
   // Error state — no dealer profile
   if (dealerError || !dealerProfile) {
     return (
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 max-w-2xl">
+      <div className="rounded-2xl border border-warning/30 bg-warning/10 p-6 max-w-2xl">
         <div className="flex items-start gap-4">
-          <XCircle size={24} className="text-amber-400 flex-shrink-0 mt-0.5" />
+          <XCircle size={24} className="text-warning flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-amber-400">Dealership profile unavailable</p>
+            <p className="font-bold text-warning">Dealership profile unavailable</p>
             <p className="text-sm text-content-muted mt-1">
               We couldn&apos;t load your dealership profile. This may mean you haven&apos;t registered a dealership yet.
             </p>
-            <a href="/dealer/register" className="inline-block mt-3 px-4 py-2 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-semibold hover:brightness-110">
+            <a href="/dealer/register" className="inline-block mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:brightness-110">
               Register Dealership
             </a>
           </div>
@@ -160,11 +160,11 @@ export default function DealerDashboardClient({ role }: { role: string }) {
   if (dealerStatus === 'PENDING') {
     return (
       <div className="max-w-2xl space-y-6">
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6">
+        <div className="rounded-2xl border border-warning/30 bg-warning/10 p-6">
           <div className="flex items-start gap-4">
-            <Clock size={24} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            <Clock size={24} className="text-warning flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-amber-400">Dealership Application — Pending Approval</p>
+              <p className="font-bold text-warning">Dealership Application — Pending Approval</p>
               <p className="text-sm text-content-muted mt-1">
                 Your application has been submitted and is waiting for admin review.
                 Vehicle listing will become available after your dealership is approved.
@@ -189,11 +189,11 @@ export default function DealerDashboardClient({ role }: { role: string }) {
   if (dealerStatus === 'REJECTED') {
     return (
       <div className="max-w-2xl space-y-6">
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
+        <div className="rounded-2xl border border-error/30 bg-error/10 p-6">
           <div className="flex items-start gap-4">
-            <XCircle size={24} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <XCircle size={24} className="text-error flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-red-400">Dealership Application — Not Approved</p>
+              <p className="font-bold text-error">Dealership Application — Not Approved</p>
               <p className="text-sm text-content-muted mt-1">
                 Your dealership application was not approved. Please contact support or update your application.
               </p>
@@ -201,7 +201,7 @@ export default function DealerDashboardClient({ role }: { role: string }) {
                 <p><span className="font-semibold">Business:</span> {dealerProfile.businessName}</p>
                 <p><span className="font-semibold">Location:</span> {dealerProfile.city}, {dealerProfile.state}</p>
               </div>
-              <a href="/dealer/register" className="inline-block mt-3 px-4 py-2 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-semibold hover:brightness-110">
+              <a href="/dealer/register" className="inline-block mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:brightness-110">
                 Update Application
               </a>
             </div>
@@ -222,7 +222,7 @@ export default function DealerDashboardClient({ role }: { role: string }) {
         <button
           type="button"
           onClick={() => { setHighlightId(null); setShowAddForm((v) => !v); }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-bold hover:brightness-110 transition-colors min-h-[44px]"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:brightness-110 transition-colors min-h-[44px]"
           aria-expanded={showAddForm}
         >
           {showAddForm ? <X size={16} /> : <Plus size={16} />}
@@ -259,7 +259,7 @@ export default function DealerDashboardClient({ role }: { role: string }) {
 
       <div className="mt-8 flex gap-2 border-b border-line overflow-x-auto">
         {(['inventory', 'leads', 'testdrives', 'finance'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={'px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 min-h-[44px] ' + (tab === t ? 'border-[#FFC700] text-[#FFC700]' : 'border-transparent text-content-muted')}>
+          <button key={t} onClick={() => setTab(t)} className={'px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 min-h-[44px] ' + (tab === t ? 'border-primary text-primary-strong' : 'border-transparent text-content-muted')}>
             {t === 'testdrives' ? 'Test Drives' : t[0].toUpperCase() + t.slice(1)}
           </button>
         ))}
@@ -269,13 +269,13 @@ export default function DealerDashboardClient({ role }: { role: string }) {
         <div className="mt-4 space-y-3" data-inventory-list>
           {vehicles.length === 0 && <p className="text-sm text-content-muted py-8 text-center">No inventory yet.</p>}
           {highlightId !== null && (
-            <p className="text-xs font-semibold text-[#FFC700]" role="status">Newly added vehicle highlighted below.</p>
+            <p className="text-xs font-semibold text-primary-strong" role="status">Newly added vehicle highlighted below.</p>
           )}
           {vehicles.map((v) => (
             <div
               key={v.id}
               data-vehicle-card={v.id}
-              className={'rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3 transition-colors ' + (v.id === highlightId ? 'border-[#FFC700] bg-[#FFC700]/5' : 'border-line bg-card')}
+              className={'rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3 transition-colors ' + (v.id === highlightId ? 'border-primary bg-primary/5' : 'border-line bg-card')}
             >
               <div>
                 <p className="font-bold text-content text-sm">{v.title}</p>
@@ -306,10 +306,10 @@ function DealerLeads() {
       .catch(() => setFailed(true));
   }, []);
   const upd = (id: number, st: string) => fetch(`/api/leads/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: st }) }).then(() => jsonGet<{ leads?: LeadItem[] }>('/api/dealer/leads', { leads: [] }).then((d) => setItems(d.leads || []))).catch(() => setFailed(true));
-  const badge = (s: string) => 'ml-2 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ' + (s === 'NEW' ? 'bg-blue-50 text-blue-700' : s === 'CLOSED' || s === 'CONVERTED' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-50 text-amber-700');
+  const badge = (s: string) => 'ml-2 px-2 py-0.5 text-xs font-bold uppercase rounded-full ' + (s === 'NEW' ? 'bg-blue-50 text-blue-700' : s === 'CLOSED' || s === 'CONVERTED' ? 'bg-success/10 text-success' : 'bg-amber-50 text-amber-700');
   return (
     <div className="mt-4 space-y-3">
-      {failed && <p className="text-sm text-red-400 py-8 text-center">Couldn&apos;t load leads. Try again shortly.</p>}
+      {failed && <p className="text-sm text-error py-8 text-center">Couldn&apos;t load leads. Try again shortly.</p>}
       {!failed && items.length === 0 && <p className="text-sm text-content-muted py-8 text-center">No leads yet.</p>}
       {items.map((l) => (
         <div key={l.id} className="rounded-2xl border border-line bg-card p-4 flex flex-wrap items-center justify-between gap-3">
@@ -336,12 +336,12 @@ function DealerTDs() {
   }, []);
   return (
     <div className="mt-4 space-y-3">
-      {failed && <p className="text-sm text-red-400 py-8 text-center">Couldn&apos;t load test drives. Try again shortly.</p>}
+      {failed && <p className="text-sm text-error py-8 text-center">Couldn&apos;t load test drives. Try again shortly.</p>}
       {!failed && items.length === 0 && <p className="text-sm text-content-muted py-8 text-center">No test drives yet.</p>}
       {items.map((t) => (
         <div key={t.id} className="rounded-2xl border border-line bg-card p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-bold text-content text-sm">{t.customerName} <span className="ml-2 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-50 text-amber-700">{t.status}</span></p>
+            <p className="font-bold text-content text-sm">{t.customerName} <span className="ml-2 px-2 py-0.5 text-xs font-bold uppercase rounded-full bg-amber-50 text-amber-700">{t.status}</span></p>
             <p className="text-xs text-content-muted">{new Date(t.preferredDate).toLocaleDateString('en-IN')}{t.vehicle?.title ? ` · ${t.vehicle.title}` : ''}</p>
           </div>
         </div>
@@ -360,12 +360,12 @@ function DealerFinance() {
   }, []);
   return (
     <div className="mt-4 space-y-3">
-      {failed && <p className="text-sm text-red-400 py-8 text-center">Couldn&apos;t load finance applications. Try again shortly.</p>}
+      {failed && <p className="text-sm text-error py-8 text-center">Couldn&apos;t load finance applications. Try again shortly.</p>}
       {!failed && items.length === 0 && <p className="text-sm text-content-muted py-8 text-center">No finance applications yet.</p>}
       {items.map((f) => (
         <div key={f.id} className="rounded-2xl border border-line bg-card p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-bold text-content text-sm">{f.applicantName} <span className="ml-2 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-purple-50 text-purple-700">{f.status}</span></p>
+            <p className="font-bold text-content text-sm">{f.applicantName} <span className="ml-2 px-2 py-0.5 text-xs font-bold uppercase rounded-full bg-purple-50 text-purple-700">{f.status}</span></p>
             <p className="text-xs text-content-muted">{inr(f.loanAmount)}{f.vehicle?.title ? ` · ${f.vehicle.title}` : ''}</p>
           </div>
         </div>

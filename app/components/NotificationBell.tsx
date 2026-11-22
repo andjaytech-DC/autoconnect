@@ -309,11 +309,18 @@ export default function NotificationBell() {
             )}
           </div>
 
-          <div className="border-t border-line px-4 py-2">
+          <div className="flex items-center justify-between border-t border-line px-4 py-2">
+            <Link
+              href="/notifications"
+              onClick={() => setOpen(false)}
+              className="text-[11px] font-semibold text-content-muted transition hover:text-[hsl(var(--color-primary-strong))]"
+            >
+              View all
+            </Link>
             <Link
               href="/dashboard"
               onClick={() => setOpen(false)}
-              className="block text-center text-[11px] font-semibold text-content-muted transition hover:text-[hsl(var(--color-primary-strong))]"
+              className="text-[11px] font-semibold text-content-muted transition hover:text-[hsl(var(--color-primary-strong))]"
             >
               View account
             </Link>

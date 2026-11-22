@@ -123,3 +123,30 @@ export function bucketCounts<T extends VehicleDims>(
 
 export const bucketLabel = (key: VehicleBucketKey) =>
   VEHICLE_BUCKETS.find((b) => b.key === key)?.label ?? "Vehicles";
+
+/**
+ * Standalone admin tools: separate pages (not portal sections). Kept apart
+ * from ADMIN_DOMAINS so the AdminPanel sub-menu is unaffected.
+ */
+export type AdminToolKey =
+  | "finance"
+  | "users"
+  | "reports"
+  | "locations"
+  | "images"
+  | "settings";
+
+export interface AdminTool {
+  key: AdminToolKey;
+  label: string;
+  href: string;
+}
+
+export const ADMIN_TOOLS: AdminTool[] = [
+  { key: "finance", label: "Finance", href: "/admin/finance" },
+  { key: "users", label: "Users & Roles", href: "/admin/users" },
+  { key: "reports", label: "Reports", href: "/admin/reports" },
+  { key: "locations", label: "Locations", href: "/admin/locations" },
+  { key: "images", label: "Images", href: "/admin/images" },
+  { key: "settings", label: "Settings", href: "/admin/settings" },
+];

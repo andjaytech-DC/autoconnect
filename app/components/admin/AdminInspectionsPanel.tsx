@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Calendar, CheckCircle, XCircle, Eye, RefreshCw } from 'lucide-react';
 import { unreachableMessage } from './unreachableMessage';
+import StatusBadge from './ui/StatusBadge';
 
 interface Inspection {
   id: number;
@@ -19,14 +20,6 @@ interface Inspection {
 }
 
 type TabFilter = 'REQUESTED' | 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'ALL';
-
-const statusBadge = (s: string) => {
-  const cls = s === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400'
-    : s === 'CANCELLED' ? 'bg-red-500/10 text-red-400'
-    : s === 'SCHEDULED' ? 'bg-blue-500/10 text-blue-400'
-    : 'bg-amber-500/10 text-amber-400';
-  return `px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${cls}`;
-};
 
 export default function AdminInspectionsPanel() {
   const [items, setItems] = useState<Inspection[]>([]);
@@ -49,6 +42,7 @@ export default function AdminInspectionsPanel() {
     setLoading(true);
     try {
       setItems(await fetchInspections());
+      setError('');
     } catch (err) {
       // try/finally alone let the rejection escape as an unhandledRejection
       // whenever the backend is unreachable or throttled.
@@ -63,9 +57,14 @@ export default function AdminInspectionsPanel() {
     (async () => {
       try {
         const rows = await fetchInspections();
-        if (active) setItems(rows);
+        if (active) {
+          setItems(rows);
+          setError('');
+        }
       } catch (err) {
         if (active) setError(unreachableMessage(err));
+      } finally {
+        if (active) setLoading(false);
       }
     })();
     return () => { active = false; };
@@ -90,55 +89,81 @@ export default function AdminInspectionsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {(['REQUESTED', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'ALL'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => { setFilter(t); setExpandedId(null); }}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl min-h-[44px] transition-colors ${
-              filter === t
-                ? 'bg-[#FFC700] text-[#15130a]'
-                : 'bg-card border border-line text-content-muted hover:border-[#FFC700]/40'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-        <button onClick={() => void load().catch(() => {})} className="px-3 py-2 text-sm text-content-muted hover:text-content min-h-[44px]" title="Refresh">
-          <RefreshCw size={16} />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-2">
+          {(['REQUESTED', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'ALL'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => { setLoading(true); setFilter(t); setExpandedId(null); }}
+              aria-pressed={filter === t}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] ${
+                filter === t
+                  ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))]'
+                  : 'border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] text-[hsl(var(--color-content-muted))] hover:border-[hsl(var(--color-line-hover))] hover:text-[hsl(var(--color-content))]'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => void load().catch(() => {})}
+          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] text-[hsl(var(--color-content-muted))] hover:text-[hsl(var(--color-content))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]"
+          title="Refresh inspections"
+        >
+          <RefreshCw size={16} aria-hidden="true" />
+          <span className="sr-only">Refresh</span>
         </button>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFC700]" />
+        <div className="admin-card flex items-center justify-center py-12" role="status" aria-label="Loading inspections">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[hsl(var(--color-primary-strong))] border-t-transparent motion-reduce:animate-none" />
         </div>
       )}
 
       {error ? (
-        <p className="text-sm text-red-400 py-8 text-center">{error}</p>
+        <div className="admin-card p-5" role="alert">
+          <p className="text-sm font-semibold text-[hsl(var(--color-content))]">
+            Inspection requests could not load
+          </p>
+          <p className="mt-1 text-sm leading-6 text-[hsl(var(--color-content-muted))]">{error}</p>
+          <button type="button" onClick={() => void load()} className="admin-btn admin-btn-secondary mt-3 text-xs">
+            <RefreshCw size={14} aria-hidden="true" /> Retry
+          </button>
+        </div>
       ) : !loading && items.length === 0 && (
-        <div className="text-center py-12 text-sm text-content-muted">
-          {filter === 'REQUESTED' ? 'No pending inspection requests.' : `No ${filter.toLowerCase()} inspections.`}
+        <div className="admin-card px-5 py-12 text-center">
+          <p className="text-sm font-semibold text-[hsl(var(--color-content))]">
+            {filter === 'REQUESTED' ? 'No pending inspection requests' : `No ${filter.toLowerCase()} inspections`}
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[hsl(var(--color-content-muted))]">
+            Requests submitted from vehicle pages will appear here for scheduling.
+          </p>
         </div>
       )}
 
       {!loading && items.map((insp) => (
-        <div key={insp.id} className="rounded-2xl border border-line bg-card overflow-hidden">
-          <div
-            className="flex flex-wrap items-center justify-between gap-3 p-4 cursor-pointer hover:bg-card/80 min-h-[44px]"
+        <div key={insp.id} className="admin-card overflow-hidden">
+          <button
+            type="button"
+            className="flex min-h-11 w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-[hsl(var(--admin-surface-muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[hsl(var(--color-focus))]"
             onClick={() => setExpandedId(expandedId === insp.id ? null : insp.id)}
+            aria-expanded={expandedId === insp.id}
           >
             <div className="flex flex-wrap items-center gap-3">
-              <span className={statusBadge(insp.status)}>{insp.status}</span>
-              <span className="font-bold text-content text-sm">{insp.customerName}</span>
-              <span className="text-xs text-content-muted">{insp.inspectionType} · {insp.location}</span>
+              <StatusBadge status={insp.status} />
+              <span className="text-sm font-bold text-[hsl(var(--color-content))]">{insp.customerName}</span>
+              <span className="text-xs text-[hsl(var(--color-content-muted))]">{insp.inspectionType} · {insp.location}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-content-muted">{new Date(insp.preferredDate).toLocaleDateString('en-IN')}</span>
-              <Eye size={14} className="text-content-muted" />
+              <span className="text-xs text-[hsl(var(--color-content-muted))]">
+                {new Date(insp.preferredDate).toLocaleDateString('en-IN')}
+              </span>
+              <Eye size={14} className="text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
             </div>
-          </div>
+          </button>
 
           {expandedId === insp.id && (
             <div className="border-t border-line p-4 space-y-4">
@@ -188,7 +213,7 @@ export default function AdminInspectionsPanel() {
                   <button
                     onClick={() => void handleAction(insp.id, 'CANCELLED')}
                     disabled={actionLoading === insp.id}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-500/15 text-red-400 border border-red-500/30 rounded-xl text-sm font-semibold hover:bg-red-500/25 disabled:opacity-50 min-h-[44px]"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-white px-5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
                   >
                     <XCircle size={16} />
                     {actionLoading === insp.id ? 'Processing…' : 'Cancel'}
@@ -209,7 +234,7 @@ export default function AdminInspectionsPanel() {
                   <button
                     onClick={() => void handleAction(insp.id, 'CANCELLED')}
                     disabled={actionLoading === insp.id}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-500/15 text-red-400 border border-red-500/30 rounded-xl text-sm font-semibold hover:bg-red-500/25 disabled:opacity-50 min-h-[44px]"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-white px-5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
                   >
                     <XCircle size={16} />
                     {actionLoading === insp.id ? 'Processing…' : 'Cancel'}

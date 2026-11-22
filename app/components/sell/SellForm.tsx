@@ -279,7 +279,7 @@ export default function SellForm({ initialRegistration = "" }: SellFormProps) {
           const isCurrent = entry.id === step;
           const isDone = entry.id < step;
           return (
-            <li key={entry.id} className="flex flex-1 items-center gap-2">
+            <li key={entry.id} className="flex min-w-0 flex-1 items-center gap-2">
               <span
                 aria-current={isCurrent ? "step" : undefined}
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -294,7 +294,7 @@ export default function SellForm({ initialRegistration = "" }: SellFormProps) {
               </span>
               <span className="min-w-0 flex-1">
                 <span
-                  className={`block truncate text-xs font-bold ${
+                  className={`${isCurrent ? "block" : "hidden sm:block"} truncate text-xs font-bold ${
                     isCurrent
                       ? "text-[hsl(var(--color-content))]"
                       : "text-[hsl(var(--color-content-muted))]"
@@ -302,7 +302,7 @@ export default function SellForm({ initialRegistration = "" }: SellFormProps) {
                 >
                   {entry.title}
                 </span>
-                <span className="hidden truncate text-[11px] text-[hsl(var(--color-content-muted))] sm:block">
+                <span className="hidden truncate text-xs text-[hsl(var(--color-content-muted))] sm:block">
                   {entry.hint}
                 </span>
               </span>
@@ -745,7 +745,7 @@ export default function SellForm({ initialRegistration = "" }: SellFormProps) {
                     .
                   </span>
                 </label>
-                <p id="vf-consent-note" className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[hsl(var(--color-content-muted))]">
+                <p id="vf-consent-note" className="mt-1.5 flex items-center gap-1.5 text-xs text-[hsl(var(--color-content-muted))]">
                   <ShieldCheck size={13} className="text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
                   Your details are used only to respond to this request.
                 </p>

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/app/server/prisma";
-import { audit, clientIp } from "@/app/server/audit";
-import { requireAdmin } from "@/app/server/authz";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { requireAdminSession } from "@/app/server/authz";
+
+export const runtime = "nodejs";
 
 const patchSchema = z.object({
   status: z.enum(["REQUESTED", "SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]).optional(),
@@ -12,16 +14,34 @@ const patchSchema = z.object({
 
 /** PATCH /api/inspections/[id] — admin: update inspection status/notes. */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAdmin(request);
-  if (auth instanceof NextResponse) return auth;
+  const auth = await requireAdminSession(request);
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
+  // The id reaches a backend URL, so only a bare positive integer is accepted.
   const { id } = await params;
-  const parsed = patchSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!/^\d+$/.test(id) || Number.parseInt(id, 10) <= 0) {
+    return NextResponse.json({ error: "Invalid inspection id" }, { status: 400 });
+  }
+
+  let body: unknown;
   try {
-    const item = await prisma.inspectionRequest.update({ where: { id: Number(id) }, data: parsed.data });
-    await audit({ userId: auth.session.id, action: "INSPECTION_STATUS", entity: "InspectionRequest", entityId: item.id, metadata: parsed.data, ipAddress: clientIp(request) });
-    return NextResponse.json({ data: item });
+    body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+
+  try {
+    const item = await backendFetch(`/inspections/${Number.parseInt(id, 10)}`, {
+      method: "PATCH",
+      token: auth.session.token,
+      body: parsed.data,
+    });
+    return NextResponse.json({ data: item });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
 }

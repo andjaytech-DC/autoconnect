@@ -229,24 +229,24 @@ export default function VehicleGallery({
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
           {/* Top-right actions */}
-          <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-4 right-4 flex gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100">
             <button
               onClick={(e) => { e.stopPropagation(); setFav(!fav); }}
-              className={`p-2.5 rounded-full backdrop-blur-sm transition-colors ${fav ? 'bg-red-500 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`}
+              className={`flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-md transition-colors ${fav ? 'bg-red-500 text-white' : 'bg-black/50 text-white hover:bg-black/70'}`}
               aria-label="Favorite"
             >
               <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); navigator.share?.({ title, url: window.location.href }).catch(() => {}); }}
-              className="p-2.5 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-md transition-colors"
               aria-label="Share"
             >
               <Share2 size={18} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx(activeIdx); setLightbox(true); }}
-              className="p-2.5 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-md transition-colors"
               aria-label="View fullscreen"
             >
               <Maximize2 size={18} />
@@ -264,14 +264,14 @@ export default function VehicleGallery({
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); setActiveIdx((i) => (i > 0 ? i - 1 : visibleImages.length - 1)); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute left-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 aria-label="Previous photo"
               >
                 <ChevronLeft size={20} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setActiveIdx((i) => (i < visibleImages.length - 1 ? i + 1 : 0)); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-md opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 aria-label="Next photo"
               >
                 <ChevronRight size={20} />
@@ -364,14 +364,14 @@ export default function VehicleGallery({
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); setActiveIdx((i) => (i > 0 ? i - 1 : visibleImages.length - 1)); }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/40 text-white/80"
+                className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white/80"
                 aria-label="Previous"
               >
                 <ChevronLeft size={18} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setActiveIdx((i) => (i < visibleImages.length - 1 ? i + 1 : 0)); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/40 text-white/80"
+                className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white/80"
                 aria-label="Next"
               >
                 <ChevronRight size={18} />
@@ -382,16 +382,21 @@ export default function VehicleGallery({
 
         {/* Dot indicators */}
         {visibleImages.length > 1 && (
-          <div className="flex justify-center gap-1.5 mt-3">
+          <div className="mt-1 flex flex-wrap justify-center">
             {visibleImages.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setActiveIdx(i)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  i === activeIdx ? 'bg-[hsl(var(--color-primary))] w-5' : 'bg-content-muted/40'
-                }`}
+                className="flex h-11 min-w-8 items-center justify-center"
                 aria-label={`Go to photo ${i + 1}`}
-              />
+                aria-current={i === activeIdx ? 'true' : undefined}
+              >
+                <span
+                  className={`h-2 rounded-full transition-all ${
+                    i === activeIdx ? 'w-5 bg-[hsl(var(--color-primary))]' : 'w-2 bg-content-muted/40'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         )}
@@ -400,7 +405,7 @@ export default function VehicleGallery({
         <div className="flex items-center justify-between mt-3">
           <button
             onClick={() => { setLightboxIdx(activeIdx); setLightbox(true); }}
-            className="text-xs font-semibold text-[hsl(var(--color-primary-strong))] flex items-center gap-1"
+            className="flex min-h-11 items-center gap-1 text-xs font-semibold text-[hsl(var(--color-primary-strong))]"
           >
             <Maximize2 size={12} />
             View all {visibleCount} photos
@@ -408,14 +413,14 @@ export default function VehicleGallery({
           <div className="flex gap-2">
             <button
               onClick={() => setFav(!fav)}
-              className={`p-2 rounded-full ${fav ? 'text-red-400' : 'text-content-muted'}`}
+              className={`flex h-11 w-11 items-center justify-center rounded-full ${fav ? 'text-red-400' : 'text-content-muted'}`}
               aria-label="Favorite"
             >
               <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
             </button>
             <button
               onClick={() => navigator.share?.({ title, url: window.location.href }).catch(() => {})}
-              className="p-2 rounded-full text-content-muted"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-content-muted"
               aria-label="Share"
             >
               <Share2 size={18} />

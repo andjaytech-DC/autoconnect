@@ -9,4 +9,6 @@ export { SellValuationSection } from "./sellValuationSection";
 export { FinalCtaSection } from "./finalCtaSection";
 export { FloatingSocials } from "./floatingSocials";
 export { default as VehicleCollection, NewCarCollection } from "./vehicleCollection";
+export { default as PremiumCollection } from "./premiumCollection";
 export { SectionHeader, SectionHeaderMobileLink } from "./sectionHeader";
+export { WhatsAppChannelBanner } from "./whatsappChannelBanner";

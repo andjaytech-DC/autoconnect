@@ -12,7 +12,7 @@ interface Review {
 }
 
 const inputCls =
-  "w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFC700]/40 bg-card text-content";
+  "w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]/40 bg-card text-content";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -116,7 +116,7 @@ export default function VehicleReviews({
                     size={14}
                     className={
                       i <= Math.round(average)
-                        ? "text-[#FFC700] fill-[#FFC700]"
+                        ? "text-[hsl(var(--color-primary-strong))] fill-[hsl(var(--color-primary))]"
                         : "text-content-faint"
                     }
                   />
@@ -159,7 +159,7 @@ export default function VehicleReviews({
                   size={22}
                   className={
                     i <= (hover || rating)
-                      ? "text-[#FFC700] fill-[#FFC700]"
+                      ? "text-[hsl(var(--color-primary-strong))] fill-[hsl(var(--color-primary))]"
                       : "text-content-faint"
                   }
                 />
@@ -181,13 +181,13 @@ export default function VehicleReviews({
           />
 
           {error && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400">
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-red-700">
               <AlertCircle size={13} aria-hidden="true" />
               {error}
             </p>
           )}
           {done && (
-            <p className="mt-2 text-xs text-emerald-400">
+            <p className="mt-2 text-xs text-emerald-700">
               Thanks — your review has been published.
             </p>
           )}
@@ -195,7 +195,7 @@ export default function VehicleReviews({
           <button
             type="submit"
             disabled={submitting}
-            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#FFC700] px-5 py-2.5 text-sm font-bold text-[#15130a] transition hover:brightness-110 disabled:opacity-50"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--color-primary))] px-5 py-2.5 text-sm font-bold text-[#15130a] transition hover:brightness-110 disabled:opacity-50"
           >
             {submitting && <Loader2 size={15} className="animate-spin" />}
             Submit review
@@ -226,7 +226,7 @@ export default function VehicleReviews({
             {reviews.map((r) => (
               <li key={r.id} className="flex gap-3 py-4">
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFC700]/15 text-xs font-bold text-[#FFC700]"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--color-primary))]/15 text-xs font-bold text-[hsl(var(--color-primary-strong))]"
                   aria-hidden="true"
                 >
                   {r.authorName ?? "?"}
@@ -251,7 +251,7 @@ export default function VehicleReviews({
                         aria-hidden="true"
                         className={
                           i <= r.rating
-                            ? "text-[#FFC700] fill-[#FFC700]"
+                            ? "text-[hsl(var(--color-primary-strong))] fill-[hsl(var(--color-primary))]"
                             : "text-content-faint"
                         }
                       />

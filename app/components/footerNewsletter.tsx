@@ -69,11 +69,11 @@ export function NewsletterCard() {
             required
             autoComplete="email"
             placeholder="you@company.com"
-            className="min-h-10 flex-1 rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-3 py-2 text-sm text-[hsl(var(--color-content))] transition-all outline-none placeholder:text-[hsl(var(--color-content-muted))] focus:border-[hsl(var(--color-primary))] focus:ring-2 focus:ring-[hsl(var(--color-focus)/0.2)]"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-3 py-2 text-base sm:text-sm text-[hsl(var(--color-content))] transition-all outline-none placeholder:text-[hsl(var(--color-content-muted))] focus:border-[hsl(var(--color-primary))] focus:ring-2 focus:ring-[hsl(var(--color-focus)/0.2)]"
           />
           <button
             type="submit"
-            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-4 py-2 text-sm font-bold text-[hsl(var(--color-primary-foreground))] shadow-sm transition-all hover:brightness-105 active:scale-[0.98]"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-4 py-2 text-sm font-bold text-[hsl(var(--color-primary-foreground))] shadow-sm transition-all hover:brightness-105 active:scale-[0.98]"
           >
             Subscribe
             <Send size={13} aria-hidden="true" />

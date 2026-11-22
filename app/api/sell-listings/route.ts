@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/app/server/prisma";
-import { requireAdminSession } from "@/app/server/authz";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
 import { enforceRateLimit } from "@/app/lib/rate-limit";
+import { requireAdminSession } from "@/app/server/authz";
+
+export const runtime = "nodejs";
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -60,18 +63,25 @@ export async function POST(request: Request) {
   if (!(await enforceRateLimit(request, { limit: 5, key: "sell" })).ok) {
     return NextResponse.json({ error: "Too many requests, try again later" }, { status: 429 });
   }
+  let body: unknown;
   try {
-    const parsed = sellSchema.safeParse(await request.json());
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
-    }
-    const { ownerName, phone, email, vehicleData, images } = parsed.data;
-    const listing = await prisma.sellerListing.create({
-      data: { ownerName, phone, email: email || null, vehicleData, images: images ?? [] },
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const parsed = sellSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+  }
+  const { ownerName, phone, email, vehicleData, images } = parsed.data;
+  try {
+    const listing = await backendFetch("/seller-listings", {
+      method: "POST",
+      body: { ownerName, phone, ...(email ? { email } : {}), vehicleData, images: images ?? [] },
     });
     return NextResponse.json({ data: listing }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Unable to submit listing" }, { status: 500 });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
 }
 
@@ -79,6 +89,17 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const auth = await requireAdminSession(request);
   if (!auth.ok) return auth.response;
-  const items = await prisma.sellerListing.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
-  return NextResponse.json({ listings: items });
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
+  const status = new URL(request.url).searchParams.get("status");
+  try {
+    const listings = await backendFetch<unknown[]>(
+      `/seller-listings${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+      { token: auth.session.token },
+    );
+    return NextResponse.json({ listings: listings ?? [] });
+  } catch (err) {
+    return backendErrorResponse(err);
+  }
 }

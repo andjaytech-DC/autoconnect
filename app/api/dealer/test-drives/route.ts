@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/app/server/prisma";
-import { requireDealerStaff } from "@/app/server/authz";
-import { readSessionCookie, verifySession } from "@/app/lib/auth";
-import { backendFetch, isBackendUnreachable, BackendError } from "@/app/lib/backend";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { requireRole } from "@/app/server/authz";
 import { withErrorGuard } from "@/app/lib/route-guard";
 
 export const runtime = "nodejs";
@@ -35,43 +34,27 @@ function mapTestDrive(t: BackendTestDrive) {
 }
 
 /**
- * GET /api/dealer/test-drives — test drives for the dealer's vehicles only.
- * Backed by the NestJS API when reachable. Error handling is centralized in
- * withErrorGuard so the route always returns JSON (never an HTML error page).
+ * GET /api/dealer/test-drives — test drives for the dealership's own vehicles
+ * only. Error handling is centralized in withErrorGuard so the route always
+ * returns JSON (never an HTML error page).
  */
 const handler = async (request: Request): Promise<NextResponse> => {
-  const session = await verifySession(readSessionCookie(request));
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireRole(request, "DEALER", "DEALER_EMPLOYEE");
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
   }
-
-  // 1) NestJS backend (authoritative)
-  if (session.token) {
-    try {
-      const testDrives = await backendFetch<BackendTestDrive[]>(
-        "/test-drives/dealer",
-        { token: session.token },
-      );
-      return NextResponse.json({
-        testDrives: (testDrives ?? []).map(mapTestDrive),
-        source: "backend",
-      });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
-    }
+  try {
+    const testDrives = await backendFetch<BackendTestDrive[]>("/dealers/me/test-drives", {
+      token: auth.session.token,
+    });
+    return NextResponse.json({
+      testDrives: (testDrives ?? []).map(mapTestDrive),
+      source: "backend",
+    });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
-
-  // 2) Local fallback
-  const auth = await requireDealerStaff(request);
-  if (auth instanceof NextResponse) return auth;
-  const testDrives = await prisma.testDrive.findMany({
-    where: { vehicle: { dealerId: auth.dealer!.id } },
-    include: { vehicle: { select: { id: true, title: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json({ testDrives, source: "local" });
 };
 
-export const GET = withErrorGuard(handler, { route: "api/dealer/test-drives" });
+export const GET = withErrorGuard(handler, { route: "api/dealer/test-drives" });

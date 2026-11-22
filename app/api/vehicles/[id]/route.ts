@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/app/server/prisma";
-import { audit, clientIp } from "@/app/server/audit";
-import { requireAdmin, requireAdminOrDealer, requireDealerStaff } from "@/app/server/authz";
+import { requireRole } from "@/app/server/authz";
 import { readSessionCookie, verifySession } from "@/app/lib/auth";
-import {
-  backendFetch,
-  BackendError,
-  isBackendUnreachable,
-} from "@/app/lib/backend";
+import { backendFetch, BackendError } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
 
 export const runtime = "nodejs";
 
@@ -109,9 +104,14 @@ function mapDetail(v: BackendVehicleDetail) {
   };
 }
 
-/** GET /api/vehicles/[id] — public vehicle detail (backend first). */
+/**
+ * GET /api/vehicles/[id] — vehicle detail.
+ *
+ * The session token (if any) is forwarded so NestJS can show a DRAFT listing to
+ * an admin or to the dealer who owns it; anonymous callers get a 404 for drafts.
+ */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -120,9 +120,11 @@ export async function GET(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  // 1) NestJS backend (authoritative)
+  const session = await verifySession(readSessionCookie(request));
+  const token = session?.token ?? null;
+
   try {
-    const v = await backendFetch<BackendVehicleDetail>(`/vehicles/${vehicleId}`);
+    const v = await backendFetch<BackendVehicleDetail>(`/vehicles/${vehicleId}`, { token });
     const vehicle = mapDetail(v);
 
     let related: Array<Record<string, unknown>> = [];
@@ -150,102 +152,10 @@ export async function GET(
 
     return NextResponse.json({ vehicle, related, source: "backend" });
   } catch (err) {
-    if (!isBackendUnreachable(err) && err instanceof BackendError) {
-      if (err.status === 404) {
-        return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
-      }
-      return NextResponse.json({ error: err.message }, { status: err.status });
+    if (err instanceof BackendError && err.status === 404) {
+      return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
     }
-    // 2) Local fallback
-  }
-
-  try {
-    const v = await prisma.vehicle.findUnique({
-      where: { id: vehicleId },
-      include: {
-        brand: true,
-        category: true,
-        dealer: true,
-        vehicleImages: { orderBy: { sortOrder: "asc" } },
-      },
-    });
-    if (!v) return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
-
-    // DRAFT listings are admin/dealer-only — never served publicly here.
-    if (v.listingStatus === "DRAFT") {
-      const s = await verifySession(readSessionCookie(_request));
-      const privileged = s?.role === "ADMIN" || s?.role === "DEALER";
-      if (!privileged) {
-        return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
-      }
-    }
-
-    const related = await prisma.vehicle.findMany({
-      where: {
-        OR: [{ categoryId: v.categoryId }, { brandId: v.brandId }],
-        id: { not: v.id },
-        status: "AVAILABLE",
-        // Drafts must never surface as related vehicles.
-        listingStatus: "PUBLISHED",
-      },
-      include: { brand: true, category: true },
-      take: 4,
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({
-      vehicle: {
-        id: v.id,
-        name: v.title,
-        brand: v.brand?.name,
-        brandId: v.brandId,
-        year: v.year,
-        price: v.price,
-        type: v.category?.name,
-        categorySlug: v.category?.slug,
-        mileage: v.mileage,
-        fuel: v.fuel,
-        transmission: v.transmission,
-        color: v.color,
-        engine: v.engine,
-        bodyType: v.bodyType,
-        city: v.city,
-        state: v.state,
-        isCertified: v.isCertified,
-        isFeatured: v.isFeatured,
-        status: v.status,
-        description: v.description,
-        images: v.vehicleImages.length
-          ? v.vehicleImages.map((g) => g.imageUrl)
-          : v.images,
-        features: v.features,
-        dealer: v.dealer
-          ? {
-              id: v.dealer.id,
-              name: v.dealer.businessName,
-              city: v.dealer.city,
-              state: v.dealer.state,
-              phone: v.dealer.phone,
-            }
-          : null,
-        createdAt: v.createdAt,
-      },
-      related: related.map((r) => ({
-        id: r.id,
-        name: r.title,
-        brand: r.brand?.name,
-        year: r.year,
-        price: r.price,
-        image: r.images[0] ?? null,
-        fuel: r.fuel,
-        transmission: r.transmission,
-        mileage: r.mileage,
-      })),
-      source: "local",
-    });
-  } catch (error) {
-    console.error("Vehicle detail error:", error);
-    return NextResponse.json({ error: "Unable to fetch vehicle" }, { status: 500 });
+    return backendErrorResponse(err);
   }
 }
 
@@ -284,6 +194,19 @@ const patchSchema = z.object({
   availableForFinance: z.boolean().optional(),
   sellerType: z.string().optional(),
   emi: z.coerce.number().optional(),
+  // Premium classification — forwarded to NestJS PATCH /premium-vehicles/admin/vehicles/:id
+  // (admin only; stripped for everyone else below).
+  premium: z
+    .object({
+      isPremium: z.boolean().optional(),
+      tagIds: z.array(z.number().int()).max(20).optional(),
+      premiumBadge: z.string().max(40).nullable().optional(),
+      premiumPriority: z.number().int().min(0).max(10000).optional(),
+      showOnHomepagePremium: z.boolean().optional(),
+      showOnPremiumPage: z.boolean().optional(),
+      featuredUntil: z.string().datetime().nullable().optional(),
+    })
+    .optional(),
 });
 
 /** Map UI patch fields to the backend UpdateVehicleDto whitelist. */
@@ -328,18 +251,11 @@ function toBackendPatchBody(parsed: z.infer<typeof patchSchema>) {
 /**
  * PATCH /api/vehicles/[id] — update.
  *
- * Authorization runs at the edge, before either branch, and ownership is
- * resolved from the session. Two defects are closed here:
- *
- *   1. The backend path used to forward on the mere presence of a session
- *      token, so role enforcement was delegated entirely to NestJS. A CUSTOMER
- *      with a token reached `PATCH /vehicles/:id` in the backend. The role gate
- *      now runs first — the same shape DELETE already used.
- *   2. `dealerId` was accepted from the body and written straight through, so
- *      an owning dealer (or employee) could reassign a vehicle to another
- *      dealership on the local path. A non-ADMIN caller may not move a vehicle
- *      between tenants; `dealerId` is stripped and replaced with their own.
- *      `isFeatured` is likewise an admin-only flag.
+ * The role gate runs here for a fast 401/403, but NestJS is what decides: it
+ * resolves the caller's dealership from the token, refuses a vehicle the caller
+ * does not own, and drops `dealerId` / `isFeatured` for anyone but an admin.
+ * (Dealership employees have no backend permission to edit inventory yet, so
+ * they are refused here too rather than half-served.)
  */
 export async function PATCH(
   request: Request,
@@ -350,15 +266,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid vehicle id" }, { status: 400 });
   }
 
-  // ── Edge authorization gate ────────────────────────────────────────────
-  // ADMIN: any vehicle. DEALER / DEALER_EMPLOYEE: their own dealership only.
-  // CUSTOMER and anonymous callers never reach an update path.
-  const session = await verifySession(readSessionCookie(request));
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (session.role !== "ADMIN" && session.role !== "DEALER" && session.role !== "DEALER_EMPLOYEE") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await requireRole(request, "ADMIN", "DEALER");
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
+  if (!session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
   }
 
   let body: unknown;
@@ -372,188 +284,69 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid" }, { status: 400 });
   }
 
-  // Only an ADMIN may move a vehicle between dealerships or flip the featured
-  // flag. For everyone else the fields are dropped from the payload that is
-  // sent to either branch, so neither can act on client-supplied tenancy.
+  // Tenancy, featuring and premium classification are admin decisions. They are
+  // dropped for everyone else so the request sent on is already well-formed.
   if (session.role !== "ADMIN") {
     delete parsed.data.dealerId;
     delete parsed.data.isFeatured;
+    delete parsed.data.premium;
   }
 
-  // 1) NestJS backend (authoritative) — needs a backend token
-  if (session.token) {
-    try {
-      const backendBody = toBackendPatchBody(parsed.data);
-      const vehicle = await backendFetch(`/vehicles/${vehicleId}`, {
-        method: "PATCH",
-        token: session.token,
-        body: backendBody,
-      });
-      // Status changes go through the dedicated backend endpoint.
-      if (parsed.data.status) {
+  try {
+    const vehicle = await backendFetch(`/vehicles/${vehicleId}`, {
+      method: "PATCH",
+      token: session.token,
+      body: toBackendPatchBody(parsed.data),
+    });
+
+    // Availability changes go through the dedicated backend endpoint. A failure
+    // here is reported — the rest of the edit has already been saved.
+    if (parsed.data.status) {
+      try {
         await backendFetch(`/vehicles/${vehicleId}/status`, {
           method: "PATCH",
           token: session.token,
           body: { status: parsed.data.status },
-        }).catch(() => undefined);
-      }
-      return NextResponse.json({ data: vehicle, source: "backend" });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
+        });
+      } catch (err) {
+        const message = err instanceof BackendError ? err.message : "Backend error";
         return NextResponse.json(
-          { error: err.status === 404 ? "Not found" : err.message },
-          { status: err.status },
+          { error: `Vehicle saved, but its status was not: ${message}` },
+          { status: err instanceof BackendError && err.status > 0 ? err.status : 502 },
         );
       }
-      // Backend unreachable → local fallback below.
     }
-  }
 
-  // 2) Local fallback (admin/dealer staff, own vehicles only)
-  // Dealership staff are included so employees can edit inventory; the
-  // ownership check below is what confines them to their own dealership.
-  const dealerAuth = await requireDealerStaff(request).catch(() => null);
-  const auth =
-    dealerAuth && !(dealerAuth instanceof NextResponse)
-      ? dealerAuth
-      : await requireAdmin(request);
-  if (auth instanceof NextResponse) return auth;
-
-  if (
-    (auth.session.role === "DEALER" || auth.session.role === "DEALER_EMPLOYEE") &&
-    auth.dealer
-  ) {
-    const owner = await prisma.vehicle.findUnique({
-      where: { id: vehicleId },
-      select: { dealerId: true },
-    });
-    if (!owner || owner.dealerId !== auth.dealer.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-  }
-
-  try {
-const before = await prisma.vehicle.findUnique({
-        where: { id: vehicleId },
-      });
-    if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    const d = parsed.data;
-    const { images, ...vehicleData } = d;
-
-    const vehicle = await prisma.$transaction(async (tx) => {
-      const updated = await tx.vehicle.update({
-        where: { id: vehicleId },
-        data: vehicleData as never,
-      });
-
-      if (images !== undefined) {
-        const existingImages = await tx.vehicleImage.findMany({
-          where: { vehicleId },
-          orderBy: { sortOrder: "asc" },
+    // Premium settings go to their own admin endpoint; a failure is reported.
+    if (parsed.data.premium && session.role === "ADMIN") {
+      try {
+        await backendFetch(`/premium-vehicles/admin/vehicles/${vehicleId}`, {
+          method: "PATCH",
+          token: session.token,
+          body: parsed.data.premium,
         });
-
-        const existingUrls = new Set(existingImages.map((img) => img.imageUrl));
-        const newUrls = new Set(images);
-        const toRemove = existingImages.filter((img) => !newUrls.has(img.imageUrl));
-        const toAdd = images.filter((url) => !existingUrls.has(url));
-
-        if (toRemove.length > 0) {
-          await tx.vehicleImage.deleteMany({
-            where: { id: { in: toRemove.map((img) => img.id) } },
-          });
-        }
-
-        if (toAdd.length > 0) {
-          const maxSortOrder = existingImages.length > 0
-            ? Math.max(...existingImages.map((img) => img.sortOrder))
-            : -1;
-          await tx.vehicleImage.createMany({
-            data: toAdd.map((imageUrl, index) => ({
-              vehicleId,
-              imageUrl,
-              altText: `${updated.title} photo ${maxSortOrder + index + 2}`,
-              isPrimary: false,
-              sortOrder: maxSortOrder + index + 1,
-            })),
-          });
-        }
-
-        const remainingImages = await tx.vehicleImage.findMany({
-          where: { vehicleId },
-          orderBy: { sortOrder: "asc" },
-        });
-
-        if (remainingImages.length > 0) {
-          await Promise.all(
-            remainingImages.map((img, index) =>
-              tx.vehicleImage.update({
-                where: { id: img.id },
-                data: { sortOrder: index, isPrimary: index === 0 },
-              }),
-            ),
-          );
-        }
-
-        await tx.vehicle.update({
-          where: { id: vehicleId },
-          data: { images },
-        });
-      }
-
-      return updated;
-    });
-
-    const changedFields = (Object.keys(d) as (keyof typeof d)[]).filter((f) => d[f] !== undefined);
-    const metadata: Record<string, unknown> = { changedFields };
-    if (d.listingStatus && before.listingStatus !== d.listingStatus) {
-      metadata.listingStatus = { from: before.listingStatus, to: d.listingStatus };
-    }
-    if (d.status && before.status !== d.status) {
-      metadata.status = { from: before.status, to: d.status };
-    }
-    if (d.images !== undefined) {
-      const prev = new Set(before.images);
-      const next = new Set(d.images);
-      const removed = before.images.filter((u) => !next.has(u));
-      const added = d.images.filter((u) => !prev.has(u));
-      if (removed.length || added.length) {
-        metadata.images = { added, removed };
+      } catch (err) {
+        const message = err instanceof BackendError ? err.message : "Backend error";
+        return NextResponse.json(
+          { error: `Vehicle saved, but premium settings were not: ${message}` },
+          { status: err instanceof BackendError && err.status > 0 ? err.status : 502 },
+        );
       }
     }
-    await audit({
-      userId: auth.session.id,
-      action: "VEHICLE_UPDATE",
-      entity: "Vehicle",
-      entityId: vehicleId,
-      metadata,
-      ipAddress: clientIp(request),
-    });
-    return NextResponse.json({ data: vehicle, source: "local" });
-  } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ data: vehicle, source: "backend" });
+  } catch (err) {
+    if (err instanceof BackendError && err.status === 404) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return backendErrorResponse(err);
   }
 }
 
 /**
- * DELETE /api/vehicles/[id]
+ * DELETE /api/vehicles/[id] — soft delete (status INACTIVE).
  *
- * P0-10. Previously this handler proxied to NestJS on the mere presence of a
- * session, so authorization for the delete was decided entirely by a
- * downstream service. Two defects:
- *
- *   1. No role gate at the edge. A CUSTOMER's delete was refused only because
- *      NestJS enforces `@Roles('ADMIN','DEALER')`. Relying on that means the
- *      correctness of a destructive operation depends on another service being
- *      reachable — and the moment it is not, control fell through to the local
- *      branch below.
- *   2. The local branch ran `prisma.vehicle.delete()` (HARD delete) while the
- *      backend performs a SOFT delete (`status = INACTIVE`). The same HTTP verb
- *      therefore had two different, irreversible-vs-reversible semantics
- *      depending on infrastructure health.
- *
- * Now: the role gate runs first, ownership is never taken from the client, and
- * both branches soft-delete identically.
+ * ADMIN or DEALER only; NestJS checks the dealer owns the vehicle from the
+ * token, never from anything the client sends.
  */
 export async function DELETE(
   request: Request,
@@ -564,69 +357,22 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid vehicle id" }, { status: 400 });
   }
 
-  // ── Edge authorization gate ────────────────────────────────────────────
-  // ADMIN: allowed. DEALER: allowed, and NestJS enforces dealership ownership
-  // from the JWT (never from a client-supplied dealerId).
-  // DEALER_EMPLOYEE / CUSTOMER: never.
-  const auth = await requireAdminOrDealer(request);
-  if (auth instanceof NextResponse) return auth;
-
-  const session = auth.session;
-
-  if (session.token) {
-    try {
-      await backendFetch(`/vehicles/${vehicleId}`, {
-        method: "DELETE",
-        token: session.token,
-      });
-      return NextResponse.json({ ok: true, source: "backend" });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        return NextResponse.json(
-          { error: err.status === 404 ? "Not found" : err.message },
-          { status: err.status },
-        );
-      }
-    }
-  }
-
-  // ── Local fallback (backend unreachable) ───────────────────────────────
-  // Soft delete, matching NestJS. Never a hard delete against the shared DB.
-  // requireAdminOrDealer already resolved the dealer relationship for DEALER
-  // sessions, so ownership is verified against that id and nothing else.
-  if (session.role !== "ADMIN") {
-    if (!auth.dealer) {
-      return NextResponse.json({ error: "Forbidden — no dealer profile" }, { status: 403 });
-    }
-    const owned = await prisma.vehicle.findFirst({
-      where: { id: vehicleId, dealerId: auth.dealer.id },
-      select: { id: true },
-    });
-    if (!owned) {
-      return NextResponse.json({ error: "You do not own this vehicle." }, { status: 403 });
-    }
+  const auth = await requireRole(request, "ADMIN", "DEALER");
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
   }
 
   try {
-    const existing = await prisma.vehicle.findUnique({
-      where: { id: vehicleId },
-      select: { id: true },
+    await backendFetch(`/vehicles/${vehicleId}`, {
+      method: "DELETE",
+      token: auth.session.token,
     });
-    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    const vehicle = await prisma.vehicle.update({
-      where: { id: vehicleId },
-      data: { status: "INACTIVE" },
-    });
-    await audit({
-      userId: session.id,
-      action: "VEHICLE_DELETE",
-      entity: "Vehicle",
-      entityId: vehicleId,
-      ipAddress: clientIp(request),
-    });
-    return NextResponse.json({ ok: true, source: "local", vehicle });
-  } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ ok: true, source: "backend" });
+  } catch (err) {
+    if (err instanceof BackendError && err.status === 404) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return backendErrorResponse(err);
   }
-}
+}

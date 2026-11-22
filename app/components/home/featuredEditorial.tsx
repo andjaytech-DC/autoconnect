@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { SafeImage } from "@/app/components/ui/SafeImage";
 import Link from "next/link";
 import { ArrowRight, Fuel, Gauge, Sparkles } from "lucide-react";
 
@@ -12,7 +12,7 @@ interface FeaturedEditorialProps {
 
 export function FeaturedEditorial({ cars }: FeaturedEditorialProps) {
   return (
-    <section className="animate-rise container pb-16" aria-label="Featured exclusive arrivals">
+    <section className="animate-rise container pb-16 pt-14" aria-label="Featured exclusive arrivals">
       <SectionHeader
         eyebrow="Featured / Exclusive Arrivals"
         title="Handpicked for the discerning buyer."
@@ -25,15 +25,14 @@ export function FeaturedEditorial({ cars }: FeaturedEditorialProps) {
             <Link
               key={car.id}
               href={`/cars/${car.id}`}
-              className="group block overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] shadow-[var(--shadow-subtle)] transition-all duration-300 hover:border-[hsl(var(--color-line-hover))] hover:shadow-[var(--shadow-elevated-hover)]"
+              className="group block overflow-hidden rounded-2xl border border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] shadow-[var(--shadow-subtle)] transition-all duration-300 hover:border-[hsl(var(--color-primary)/0.7)] hover:shadow-[var(--shadow-elevated-hover)]"
             >
               <div className={`grid gap-0 ${idx % 2 === 0 ? "lg:grid-cols-[1.2fr_1fr]" : "lg:grid-cols-[1fr_1.2fr]"}`}>
                 <div className={`relative aspect-[16/10] overflow-hidden bg-[hsl(var(--color-surface-strong))] ${idx % 2 !== 0 ? "lg:order-2" : ""}`}>
                   {car.image ? (
-                    <Image
+                    <SafeImage
                       src={car.image}
                       alt={car.name}
-                      fill
                       sizes="(max-width:1024px)100vw,50vw"
                       className="object-contain p-6 transition-transform duration-500 group-hover:scale-105"
                     />
@@ -42,13 +41,13 @@ export function FeaturedEditorial({ cars }: FeaturedEditorialProps) {
                       <Sparkles className="text-[hsl(var(--color-content-faint))]" size={48} />
                     </div>
                   )}
-                  <span className="absolute left-4 top-4 rounded-lg bg-[hsl(var(--color-primary))] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--color-primary-foreground))]">
+                  <span className="absolute left-4 top-4 rounded-sm bg-ink-900 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#ECD48C] ring-1 ring-[hsl(var(--color-primary))]">
                     Exclusive
                   </span>
                 </div>
                 <div className={`flex flex-col justify-center px-8 py-8 lg:px-12 ${idx % 2 !== 0 ? "lg:order-1" : ""}`}>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--color-primary-strong))]">{car.brand}</p>
-                  <h3 className="mt-2 text-xl font-extrabold text-[hsl(var(--color-content))] sm:text-2xl">{car.name}</h3>
+                  <p className="eyebrow">{car.brand}</p>
+                  <h3 className="mt-3 text-2xl font-bold text-[hsl(var(--color-content))] sm:text-3xl">{car.name}</h3>
                   <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[hsl(var(--color-content-muted))]">
                     <span className="inline-flex items-center gap-1"><Gauge size={13} aria-hidden="true" /> {car.year}</span>
                     <span className="inline-flex items-center gap-1"><Fuel size={13} aria-hidden="true" /> {car.mileage.toLocaleString("en-IN")} km</span>
@@ -56,8 +55,8 @@ export function FeaturedEditorial({ cars }: FeaturedEditorialProps) {
                     <span>{car.transmission}</span>
                   </div>
                   <div className="mt-6 flex items-center gap-4">
-                    <span className="text-2xl font-extrabold text-[hsl(var(--color-content))]">{formatINRLakhs(car.price)}</span>
-                    <span className="rounded-xl bg-[hsl(var(--color-primary)/0.15)] px-4 py-2 text-xs font-bold text-[hsl(var(--color-primary-strong))] transition group-hover:bg-[hsl(var(--color-primary))] group-hover:text-[hsl(var(--color-primary-foreground))]">
+                    <span className="font-display whitespace-nowrap text-2xl font-bold text-[hsl(var(--color-content))] sm:text-3xl">{formatINRLakhs(car.price)}</span>
+                    <span className="rounded-lg border border-[hsl(var(--color-primary)/0.5)] bg-[hsl(var(--color-primary)/0.10)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[hsl(var(--color-primary-strong))] transition group-hover:border-[hsl(var(--color-primary))] group-hover:bg-[hsl(var(--color-primary))] group-hover:text-[hsl(var(--color-primary-foreground))]">
                       Explore vehicle <ArrowRight size={12} className="ml-1 inline" aria-hidden="true" />
                     </span>
                   </div>
@@ -75,7 +74,7 @@ export function FeaturedEditorial({ cars }: FeaturedEditorialProps) {
       )}
 
       <div className="mt-8 text-center lg:hidden">
-        <Link href="/cars" className="inline-flex items-center gap-1 text-sm font-semibold text-[hsl(var(--color-primary-strong))]">
+        <Link href="/cars" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[hsl(var(--color-primary-strong))]">
           View Full Collection <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </div>

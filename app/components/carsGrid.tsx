@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2, SearchX } from "lucide-react";
 import VehicleCard from "@/app/components/vehicle/VehicleCard";
+import EmptyState from "@/app/components/ui/EmptyState";
 import {
   ApiError,
   budgetToPrice,
@@ -42,7 +43,7 @@ function FilterChip({
   children: React.ReactNode;
 }) {
   return (
-    <Link href={href} className="chip" aria-current={active ? "page" : undefined}>
+    <Link href={href} className="chip inline-flex min-h-11 shrink-0 items-center" aria-current={active ? "page" : undefined}>
       {children}
     </Link>
   );
@@ -53,6 +54,8 @@ const budgetChips = [
   { label: "₹5-10L", value: "5-10" },
   { label: "₹10-15L", value: "10-15" },
   { label: "Above ₹15L", value: "15-" },
+  { label: "₹50L-1Cr", value: "50-100" },
+  { label: "Above ₹1Cr", value: "100-" },
 ];
 
 const bodyTypes = ["SUV", "Sedan", "Hatchback"];
@@ -125,52 +128,63 @@ export default function CarsGrid() {
 
   return (
     <>
-      {/* Body-type chips */}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by body type">
-        <FilterChip href={carsHref(active, { type: "" })} active={!type}>
-          All
-        </FilterChip>
-        {bodyTypes.map((t) => (
-          <FilterChip
-            key={t}
-            href={carsHref(active, { type: t })}
-            active={type.toLowerCase() === t.toLowerCase()}
-          >
-            {t}
+      {/* Filters: one scrollable row for body type, compact selects for brand and budget */}
+      <div className="mb-6 space-y-3">
+        <div
+          className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
+          role="group"
+          aria-label="Filter by body type"
+        >
+          <FilterChip href={carsHref(active, { type: "" })} active={!type}>
+            All
           </FilterChip>
-        ))}
-      </div>
+          {bodyTypes.map((t) => (
+            <FilterChip
+              key={t}
+              href={carsHref(active, { type: t })}
+              active={type.toLowerCase() === t.toLowerCase()}
+            >
+              {t}
+            </FilterChip>
+          ))}
+        </div>
 
-      {/* Brand chips */}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by brand">
-        <FilterChip href={carsHref(active, { brand: "" })} active={!brand}>
-          All Brands
-        </FilterChip>
-        {brands.map((b) => (
-          <FilterChip
-            key={b}
-            href={carsHref(active, { brand: b })}
-            active={brand.toLowerCase() === b.toLowerCase()}
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center">
+          <label className="sr-only" htmlFor="filter-brand">Brand</label>
+          <select
+            id="filter-brand"
+            value={brand}
+            onChange={(ev) => router.push(carsHref(active, { brand: ev.target.value }))}
+            className="h-11 w-full rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-3 text-sm font-medium text-[hsl(var(--color-content))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] sm:w-48"
           >
-            {b}
-          </FilterChip>
-        ))}
-      </div>
+            <option value="">All brands</option>
+            {brands.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
 
-      {/* Budget chips */}
-      <div className="mb-6 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by budget">
-        <FilterChip href={carsHref(active, { budget: "" })} active={!budget}>
-          Any Budget
-        </FilterChip>
-        {budgetChips.map((b) => (
-          <FilterChip
-            key={b.value}
-            href={carsHref(active, { budget: b.value })}
-            active={budget === b.value}
+          <label className="sr-only" htmlFor="filter-budget">Budget</label>
+          <select
+            id="filter-budget"
+            value={budget}
+            onChange={(ev) => router.push(carsHref(active, { budget: ev.target.value }))}
+            className="h-11 w-full rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-3 text-sm font-medium text-[hsl(var(--color-content))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] sm:w-48"
           >
-            {b.label}
-          </FilterChip>
-        ))}
+            <option value="">Any budget</option>
+            {budgetChips.map((b) => (
+              <option key={b.value} value={b.value}>{b.label}</option>
+            ))}
+          </select>
+
+          {(type || brand || budget || q) && (
+            <Link
+              href="/cars"
+              className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold text-[hsl(var(--color-primary-strong))] underline-offset-4 hover:underline sm:col-span-1"
+            >
+              Clear all filters
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Loading state */}
@@ -233,20 +247,17 @@ export default function CarsGrid() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[hsl(var(--color-line))] bg-[hsl(var(--color-card))] py-16 text-center">
-              <SearchX
-                size={32}
-                className="mb-3 text-[hsl(var(--color-content-faint))]"
-                aria-hidden="true"
-              />
-              <p className="text-sm font-semibold text-[hsl(var(--color-content))]">No vehicles found</p>
-              <p className="mt-1 text-sm text-[hsl(var(--color-content-muted))]">
-                Try clearing a filter to see more listings.
-              </p>
-              <Link href="/cars" className="btn btn-secondary btn-sm mt-4">
-                Clear all filters
-              </Link>
-            </div>
+            <EmptyState
+              icon={SearchX}
+              as="h3"
+              title="No vehicles found"
+              description="Try clearing a filter to see more listings."
+              action={
+                <Link href="/cars" className="btn btn-secondary btn-sm">
+                  Clear all filters
+                </Link>
+              }
+            />
           )}
         </>
       )}

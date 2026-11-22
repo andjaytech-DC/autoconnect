@@ -1,9 +1,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
 import { resetRateLimits } from "../app/lib/rate-limit";
 import { resetTelemetryStore } from "../app/lib/telemetry-store";
-import { resetUploadRegistries, localUploadName } from "../app/server/uploads";
 import { SESSION_COOKIE, signSession, type SessionUser } from "../app/lib/auth";
 
 import { GET as adminStatsGET } from "../app/api/admin/stats/route";
@@ -77,7 +75,6 @@ function postReq(
 beforeEach(async () => {
   resetRateLimits();
   resetTelemetryStore();
-  resetUploadRegistries();
   bootstrapped = bootstrapped ?? bootstrap();
   await bootstrapped;
 });
@@ -151,19 +148,6 @@ test("upload/cleanup refuses a customer with 403", async () => {
   assert.equal(response.status, 403);
 });
 
-test("upload/cleanup rejects an oversized batch for an authenticated caller", async () => {
-  const response = await uploadCleanupPOST(
-    postReq("admin", "https://example.test/api/upload/cleanup", {
-      urls: Array.from({ length: 101 }, (_, i) => `/uploads/x${i}.webp`),
-    }),
-  );
-  // Not 401/403: the caller is allowed to try, the request itself is invalid.
-  assert.ok(
-    response.status === 400 || response.status === 200,
-    `unexpected status ${response.status}`,
-  );
-});
-
 test("services/providers does not treat an anonymous caller as unauthorized", async () => {
   // The directory is public by design, so anonymity must not produce 401/403.
   // Whether the query itself succeeds depends on a live database, so only the
@@ -179,28 +163,4 @@ test("services/providers does not treat an anonymous caller as unauthorized", as
   }
   assert.notEqual(status, 401);
   assert.notEqual(status, 403);
-});
-
-test("a traversal filename is reduced to a basename that cannot escape uploads", () => {
-  // `localUploadName` strips every directory component, so the worst a
-  // traversal payload can do is name an unrelated *file inside uploads* —
-  // which the ownership check then refuses. Nothing resolves outside.
-  const base = path.resolve("public", "uploads");
-  const hostile = [
-    "/uploads/../secrets.env",
-    "/uploads/../../etc/passwd",
-    "../.env",
-    "..%2F..%2Fnginx.conf",
-    "/uploads/nested/deep/a.webp",
-  ];
-  for (const url of hostile) {
-    const name = localUploadName(url);
-    if (!name) continue; // malformed outright
-    const resolved = path.resolve(base, name);
-    assert.ok(
-      resolved === base || resolved.startsWith(base + path.sep),
-      `${url} → ${name} escapes ${base}`,
-    );
-    assert.ok(!name.includes("/") && !name.includes("\\"), "basename must have no separators");
-  }
 });

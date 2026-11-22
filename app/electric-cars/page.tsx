@@ -69,7 +69,7 @@ export default async function ElectricCarsPage() {
         </div>
       </section>
 
-      <main className="container flex-1 py-10">
+      <div className="container flex-1 py-10">
         {error ? (
           <div className="rounded-3xl border border-dashed border-[hsl(var(--color-line))] bg-[hsl(var(--color-surface))] px-6 py-20 text-center">
             <h2 className="text-xl font-bold text-[hsl(var(--color-content))]">Unable to load electric cars</h2>
@@ -109,7 +109,7 @@ export default async function ElectricCarsPage() {
             </p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

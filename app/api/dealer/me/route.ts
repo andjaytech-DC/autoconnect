@@ -1,27 +1,50 @@
 import { NextResponse } from "next/server";
 
-import { requireDealerStaff } from "@/app/server/authz";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { requireRole } from "@/app/server/authz";
 
 export const runtime = "nodejs";
+
+interface BackendDealerProfile {
+  id: number;
+  businessName: string;
+  city?: string | null;
+  state?: string | null;
+  status?: string | null;
+  phone?: string | null;
+  ownerName?: string | null;
+  email?: string | null;
+}
 
 /**
  * GET /api/dealer/me — the caller's own dealer profile.
  * Lets the dealer portal lock the add-vehicle form to the right dealerId.
+ * NestJS resolves the dealership from the token (owner, or active employee).
  */
 export async function GET(request: Request) {
-  const auth = await requireDealerStaff(request);
-  if (auth instanceof NextResponse) return auth;
-  const d = auth.dealer!;
-  return NextResponse.json({
-    dealer: {
-      id: d.id,
-      businessName: d.businessName,
-      city: d.city,
-      state: d.state,
-      status: (d as Record<string, unknown>).status,
-      ownerName: (d as Record<string, unknown>).ownerName,
-      email: (d as Record<string, unknown>).email,
-      phone: (d as Record<string, unknown>).phone,
-    },
-  });
+  const auth = await requireRole(request, "DEALER", "DEALER_EMPLOYEE");
+  if (!auth.ok) return auth.response;
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
+  try {
+    const d = await backendFetch<BackendDealerProfile>("/dealers/me", {
+      token: auth.session.token,
+    });
+    return NextResponse.json({
+      dealer: {
+        id: d.id,
+        businessName: d.businessName,
+        city: d.city ?? null,
+        state: d.state ?? null,
+        status: d.status ?? null,
+        ownerName: d.ownerName ?? null,
+        email: d.email ?? null,
+        phone: d.phone ?? null,
+      },
+    });
+  } catch (err) {
+    return backendErrorResponse(err);
+  }
 }

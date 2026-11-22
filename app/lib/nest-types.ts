@@ -21,6 +21,21 @@ export interface UiVehicle {
   createdAt: string;
   premium?: boolean;
   premiumBadge?: string;
+  /** Engine / power text as entered by the dealer, when available. */
+  engine?: string | null;
+  bodyType?: string | null;
+  /** Admin-assigned classification tags (Luxury, Imported, …). */
+  premiumTags?: PremiumTagRef[];
+}
+
+export interface PremiumTagRef {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface PremiumTag extends PremiumTagRef {
+  vehicleCount: number;
 }
 
 export interface UiDealer {
@@ -139,7 +154,14 @@ export interface NestVehicle {
   category?: { id: number; name: string; slug: string } | null;
   dealer?: { id: number; businessName: string; city?: string | null } | null;
   premium?: boolean;
-  premiumBadge?: string;
+  /** Admin-controlled premium classification (NestJS owns these). */
+  isPremium?: boolean;
+  premiumPriority?: number;
+  showOnPremiumPage?: boolean;
+  showOnHomepagePremium?: boolean;
+  premiumBadge?: string | null;
+  featuredUntil?: string | null;
+  specialTags?: { tag: PremiumTagRef }[] | null;
 }
 
 export interface NestVehicleList {

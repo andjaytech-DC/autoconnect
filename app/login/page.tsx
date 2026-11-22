@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { SUPPORT_EMAIL } from "@/app/data/navigation";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 
@@ -193,14 +195,14 @@ export default function LoginPage() {
       {/* Left Panel: Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute inset-0 bg-gradient-to-br from-ink-950 via-ink-900 to-ink-700">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse-slow" />
           <div
-            className="absolute bottom-32 right-16 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl animate-pulse-slow"
+            className="absolute bottom-32 right-16 w-96 h-96 bg-amber-400/15 rounded-full blur-3xl animate-pulse-slow"
             style={{ animationDelay: "1s" }}
           />
           <div
-            className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-400/15 rounded-full blur-3xl animate-pulse-slow"
+            className="absolute top-1/2 left-1/3 w-64 h-64 bg-amber-300/10 rounded-full blur-3xl animate-pulse-slow"
             style={{ animationDelay: "2s" }}
           />
         </div>
@@ -225,7 +227,7 @@ export default function LoginPage() {
                   />
                 </svg>
               </div>
-              <span className="text-2xl font-bold tracking-tight">AutoHub</span>
+              <span className="text-2xl font-bold tracking-tight">Progressive AutoHub</span>
             </div>
 
             {/* Headline */}
@@ -234,17 +236,17 @@ export default function LoginPage() {
               <br />
               Automotive
               <br />
-              <span className="text-emerald-200">Marketplace</span>
+              <span className="text-amber-300">Marketplace</span>
             </h1>
 
-            <p className="text-lg text-white/80 max-w-md leading-relaxed mb-12">
+            <p className="text-lg text-slate-200 max-w-md leading-relaxed mb-12">
               Buy and sell pre-owned cars with recorded inspections and a
               transparent price. Every listing shows exactly what has and has
               not been verified.
             </p>
 
             {/* No invented metrics: what the platform actually does. */}
-            <ul className="flex flex-col gap-3 text-sm text-white/75">
+            <ul className="flex flex-col gap-3 text-sm text-slate-300">
               <li>Recorded inspections on every listing</li>
               <li>Ownership, insurance and PUC history where available</li>
               <li>Unverified items are labelled, never presented as clean</li>
@@ -595,19 +597,20 @@ export default function LoginPage() {
                   />
                   <span className="text-sm text-[hsl(var(--color-content-muted))]">Remember me</span>
                 </label>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-[hsl(var(--color-primary-strong))] hover:text-[hsl(var(--color-primary-active))] transition-colors"
+                {/* No self-service reset exists yet, so this reaches a person. */}
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Password reset request")}`}
+                  className="inline-flex min-h-6 items-center text-sm font-medium text-[hsl(var(--color-primary-strong))] hover:text-[hsl(var(--color-primary-active))] transition-colors"
                 >
                   Forgot password?
-                </button>
+                </a>
               </div>
 
               {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-success w-full gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="btn btn-primary w-full gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -656,22 +659,25 @@ export default function LoginPage() {
             {/* Sign up link */}
             <p className="mt-8 text-center text-sm text-[hsl(var(--color-content-muted))]">
               Don&apos;t have an account?{" "}
-              <button className="font-semibold text-[hsl(var(--color-primary-strong))] hover:text-[hsl(var(--color-primary-active))] transition-colors">
+              <Link
+                href="/register"
+                className="inline-flex min-h-6 items-center font-semibold text-[hsl(var(--color-primary-strong))] underline-offset-4 transition-colors hover:text-[hsl(var(--color-primary-active))] hover:underline"
+              >
                 Create one now
-              </button>
+              </Link>
             </p>
           </div>
 
           {/* Footer */}
           <p className="mt-8 text-center text-xs text-[hsl(var(--color-content-muted))]">
             By signing in, you agree to our{" "}
-            <button className="underline hover:text-[hsl(var(--color-content-muted))] transition-colors">
+            <Link href="/terms" className="underline transition-colors hover:text-[hsl(var(--color-content))]">
               Terms of Service
-            </button>{" "}
+            </Link>{" "}
             and{" "}
-            <button className="underline hover:text-[hsl(var(--color-content-muted))] transition-colors">
+            <Link href="/privacy-policy" className="underline transition-colors hover:text-[hsl(var(--color-content))]">
               Privacy Policy
-            </button>
+            </Link>
           </p>
         </div>
       </div>

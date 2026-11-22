@@ -1,7 +1,7 @@
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { resetRateLimits, rateLimit } from "../app/lib/rate-limit";
+import { resetRateLimits, rateLimit, resetSharedRateLimitState } from "../app/lib/rate-limit";
 import { resetLoginThrottle } from "../app/server/login-throttle";
 import { POST as registerPOST } from "../app/api/auth/register/route";
 import { POST as quotePOST } from "../app/api/insurance/quote/route";
@@ -17,18 +17,24 @@ import { POST as quotePOST } from "../app/api/insurance/quote/route";
  * supplied, which is always available.
  */
 
-const ENV_KEYS = ["TRUST_PROXY_HEADERS", "TRUSTED_PROXIES", "NODE_ENV"] as const;
+const ENV_KEYS = ["TRUST_PROXY_HEADERS", "TRUSTED_PROXIES", "NODE_ENV", "NESTJS_API_URL"] as const;
 const originalEnv = new Map<string, string | undefined>(ENV_KEYS.map((k) => [k, process.env[k]]));
+const realFetch = globalThis.fetch;
 
 beforeEach(() => {
   resetRateLimits();
+  resetSharedRateLimitState();
   resetLoginThrottle();
+  globalThis.fetch = realFetch;
   for (const [k, v] of originalEnv) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
   }
+  // Disable backend calls by unsetting NESTJS_API_URL so register returns 503 cleanly
+  delete process.env.NESTJS_API_URL;
 });
 afterEach(() => {
+  globalThis.fetch = realFetch;
   for (const [k, v] of originalEnv) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
@@ -115,10 +121,11 @@ test("registration is throttled per identity even for an untrusted caller", asyn
     statuses.push(res.status);
   }
 
-  // 201 (created), 409 (already exists) or 429 (throttled) — never 500/HTML.
+  // 201 (created), 409 (already exists), 429 (throttled) or 503 (no backend in
+  // this suite) — never 500/HTML.
   for (const status of statuses) {
     assert.ok(
-      [201, 409, 429].includes(status),
+      [201, 409, 429, 503].includes(status),
       `unexpected register status ${status}`,
     );
   }
@@ -172,7 +179,7 @@ test("a common username is never throttled by other people's sign-ups", async ()
   );
   assert.notEqual(sixth.status, 429, "a popular username must not be locked out");
   assert.ok(
-    [201, 409].includes(sixth.status),
+    [201, 409, 503].includes(sixth.status),
     `expected a real answer, got ${sixth.status}`,
   );
 });

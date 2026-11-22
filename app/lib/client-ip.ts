@@ -152,3 +152,14 @@ export function resolveClientIp(request: Request): ClientIpResult {
 
   return { ip: UNIDENTIFIED_IP, trusted: false };
 }
+
+/**
+ * Best-effort client IP for log records. Uses the same trust rules as the rate
+ * limiter: proxy headers are only honoured behind an explicitly configured
+ * trusted proxy, so an untrusted caller cannot fabricate the recorded address.
+ * Returns undefined when the address is not trustworthy.
+ */
+export function clientIp(request: Request): string | undefined {
+  const { ip, trusted } = resolveClientIp(request);
+  return trusted ? ip : undefined;
+}

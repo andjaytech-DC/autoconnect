@@ -47,7 +47,7 @@ export function HomepageStructuredData({ cars }: { cars: FeaturedCar[] }) {
     url: BASE_URL,
     logo: `${BASE_URL}/favicon.svg`,
     description:
-      "India's trusted platform for certified pre-owned cars. Buy, sell and finance quality used cars with transparent pricing, flexible finance options and doorstep delivery.",
+      "India's trusted platform for pre-owned cars. Buy, sell and finance quality used cars with transparent pricing, flexible finance options and doorstep delivery.",
     areaServed: "India",
     priceRange: "₹",
   };

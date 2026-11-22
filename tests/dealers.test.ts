@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import { resetRateLimits } from "../app/lib/rate-limit";
 import { SESSION_COOKIE, signSession, type SessionUser } from "../app/lib/auth";
 import { mapDealer } from "../app/lib/nest-mappers";
-import { mapBackendDealer } from "../app/api/dealers/route";
 import { GET as dealerByIdGET } from "../app/api/dealers/[id]/route";
 
 /**
@@ -13,8 +12,8 @@ import { GET as dealerByIdGET } from "../app/api/dealers/[id]/route";
  * business address.
  *
  * There are two independent data paths, and both have to be gated:
- *   - the BFF routes (/api/dealers, /api/dealers/[id]) via mapBackendDealer
- *   - the server components, which read NestJS directly via mapDealer
+ *   - NestJS itself (phone only for signed-in callers; email never sent)
+ *   - mapDealer, the shared mapper (fail-closed default)
  * Missing either one leaves the numbers publicly readable.
  */
 
@@ -50,26 +49,12 @@ const BACKEND_DEALER = {
 
 const CONTACT_FIELDS = ["phone", "email"] as const;
 
-test("mapBackendDealer withholds phone and email from anonymous callers", () => {
-  const anon = mapBackendDealer(BACKEND_DEALER, false);
-  assert.equal(anon.phone, null);
-  assert.equal(anon.email, null);
-  // The directory itself is still served.
-  assert.equal(anon.name, "AutoHub Prime Motors");
-  assert.equal(anon.city, "Mumbai");
-  assert.equal(anon.address, "12 Ring Road");
-  assert.equal(anon.carsAvailable, 2);
-});
-
-test("mapBackendDealer releases contact details to a signed-in caller", () => {
-  const signedIn = mapBackendDealer(BACKEND_DEALER, true);
-  assert.equal(signedIn.phone, "+91-98765-43210");
-  assert.equal(signedIn.email, "prime@login-identifier.test");
-});
-
-test("mapBackendDealer fails closed for a verified dealer with no email", () => {
-  const noEmail = mapBackendDealer({ ...BACKEND_DEALER, user: null }, true);
-  assert.equal(noEmail.email, null, "a missing email stays null even when signed in");
+test("mapDealer counts vehicles from the directory's _count when no array is sent", () => {
+  const { vehicles: _omit, ...listRow } = BACKEND_DEALER;
+  const mapped = mapDealer({ ...listRow, _count: { vehicles: 5 } } as never);
+  assert.equal(mapped.carsAvailable, 5);
+  assert.equal(mapped.name, "AutoHub Prime Motors");
+  assert.equal(mapped.address, "12 Ring Road");
 });
 
 test("mapDealer (the server-component path) is gated on the same rule", () => {
@@ -91,11 +76,11 @@ test("mapDealer defaults to gated so a forgotten flag publishes nothing", () => 
 });
 
 test("featured is derived from verification, so the filter can match", () => {
-  const verified = mapBackendDealer(BACKEND_DEALER, false);
+  const verified = mapDealer(BACKEND_DEALER);
   assert.equal(verified.isFeatured, true, "verified dealer is featured");
   assert.equal(verified.isVerified, true);
 
-  const unverified = mapBackendDealer({ ...BACKEND_DEALER, isVerified: false }, false);
+  const unverified = mapDealer({ ...BACKEND_DEALER, isVerified: false });
   assert.equal(unverified.isFeatured, false);
   // And through the server-component mapper, which had the same dead default.
   assert.equal(mapDealer({ ...BACKEND_DEALER, isVerified: false }).isFeatured, false);
@@ -103,8 +88,8 @@ test("featured is derived from verification, so the filter can match", () => {
 });
 
 test("/api/dealers/[id] never answers an anonymous caller with an auth error", async () => {
-  // NestJS is not running here and app/data/dealers.ts is intentionally empty,
-  // so this resolves to 404 rather than a listing. What matters is that the
+  // NestJS is not running here and there is no fixture fallback,
+  // so this resolves to 503 rather than a listing. What matters is that the
   // dealer route is not gated as a whole — the directory stays public and only
   // the contact fields are withheld.
   const responses = await Promise.all([

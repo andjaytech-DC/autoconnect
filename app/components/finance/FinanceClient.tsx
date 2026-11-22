@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Calculator, Car, User, CheckCircle, ArrowRight, ArrowLeft, Loader2, Shield } from 'lucide-react';
 
-const inputCls = 'w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFC700]/40 bg-card text-content min-h-[44px]';
+const inputCls = 'w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-card text-content min-h-[44px]';
 const labelCls = 'block text-sm font-semibold text-content mb-1.5';
 
 const STEPS = [
@@ -88,11 +88,11 @@ export default function FinanceClient() {
             <div key={s.key} className="flex-1 flex items-center">
               <div className="flex flex-col items-center flex-1">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  done ? 'bg-emerald-500 text-white' : active ? 'bg-[#FFC700] text-[#15130a]' : 'bg-card border border-line text-content-muted'
+                  done ? 'bg-success text-success-foreground' : active ? 'bg-primary text-primary-foreground' : 'bg-card border border-line text-content-muted'
                 }`}>
                   {done ? <CheckCircle size={18} /> : <Icon size={18} />}
                 </div>
-                <span className={`text-[10px] mt-1.5 font-semibold text-center ${active ? 'text-[#FFC700]' : done ? 'text-emerald-400' : 'text-content-muted'}`}>
+                <span className={`text-xs mt-1.5 font-semibold text-center ${active ? 'text-primary-strong' : done ? 'text-success' : 'text-content-muted'}`}>
                   {s.label}
                 </span>
               </div>
@@ -107,7 +107,7 @@ export default function FinanceClient() {
       {/* Step content */}
       <div className="rounded-2xl border border-line bg-card p-6 sm:p-8">
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-400">{error}</div>
+          <div className="mb-4 p-3 rounded-xl bg-error/10 border border-error/30 text-sm text-error">{error}</div>
         )}
 
         {/* Step 0: Car Details */}
@@ -115,7 +115,7 @@ export default function FinanceClient() {
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-bold text-content flex items-center gap-2">
-                <Car size={20} className="text-[#FFC700]" />
+                <Car size={20} className="text-primary-strong" />
                 Tell us about your car
               </h2>
               <p className="text-sm text-content-muted mt-1">Adjust the sliders or type to set your car&apos;s estimated price.</p>
@@ -123,7 +123,7 @@ export default function FinanceClient() {
             <div>
               <label className={labelCls}>Car Price: {inr(price)}</label>
               <input type="range" min={100000} max={5000000} step={25000} value={price}
-                onChange={(e) => setPrice(Number(e.target.value))} className="w-full accent-[#FFC700]" />
+                onChange={(e) => setPrice(Number(e.target.value))} className="w-full accent-primary" />
               <div className="flex justify-between text-xs text-content-muted mt-1">
                 <span>₹1L</span><span>₹50L</span>
               </div>
@@ -131,13 +131,13 @@ export default function FinanceClient() {
             <div>
               <label className={labelCls}>Down Payment: {inr(down)}</label>
               <input type="range" min={0} max={price} step={10000} value={down}
-                onChange={(e) => setDown(Number(e.target.value))} className="w-full accent-[#FFC700]" />
+                onChange={(e) => setDown(Number(e.target.value))} className="w-full accent-primary" />
               <div className="flex justify-between text-xs text-content-muted mt-1">
                 <span>₹0</span><span>{inr(price)}</span>
               </div>
             </div>
             <div className="p-3 rounded-xl bg-surface text-sm flex items-center gap-3">
-              <Shield size={16} className="text-[#FFC700] flex-shrink-0" />
+              <Shield size={16} className="text-primary-strong flex-shrink-0" />
               <span className="text-content-muted">Loan amount: <strong className="text-content">{inr(emi.loanAmount)}</strong></span>
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function FinanceClient() {
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-bold text-content flex items-center gap-2">
-                <Calculator size={20} className="text-[#FFC700]" />
+                <Calculator size={20} className="text-primary-strong" />
                 Your EMI Estimate
               </h2>
               <p className="text-sm text-content-muted mt-1">Adjust rate and tenure to find your comfortable EMI.</p>
@@ -156,7 +156,7 @@ export default function FinanceClient() {
             <div>
               <label className={labelCls}>Interest Rate: {rate}% p.a.</label>
               <input type="range" min={6} max={18} step={0.5} value={rate}
-                onChange={(e) => setRate(Number(e.target.value))} className="w-full accent-[#FFC700]" />
+                onChange={(e) => setRate(Number(e.target.value))} className="w-full accent-primary" />
               <div className="flex justify-between text-xs text-content-muted mt-1">
                 <span>6%</span><span>18%</span>
               </div>
@@ -164,14 +164,14 @@ export default function FinanceClient() {
             <div>
               <label className={labelCls}>Loan Tenure: {tenure} months ({Math.round(tenure / 12 * 10) / 10} years)</label>
               <input type="range" min={12} max={84} step={6} value={tenure}
-                onChange={(e) => setTenure(Number(e.target.value))} className="w-full accent-[#FFC700]" />
+                onChange={(e) => setTenure(Number(e.target.value))} className="w-full accent-primary" />
               <div className="flex justify-between text-xs text-content-muted mt-1">
                 <span>1 yr</span><span>7 yrs</span>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="p-4 rounded-xl bg-surface">
-                <p className="text-2xl font-extrabold text-[#FFC700]">{inr(emi.monthly)}</p>
+                <p className="text-2xl font-extrabold text-primary-strong">{inr(emi.monthly)}</p>
                 <p className="text-xs text-content-muted mt-1">Monthly EMI</p>
               </div>
               <div className="p-4 rounded-xl bg-surface">
@@ -194,7 +194,7 @@ export default function FinanceClient() {
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-bold text-content flex items-center gap-2">
-                <User size={20} className="text-[#FFC700]" />
+                <User size={20} className="text-primary-strong" />
                 Your Details
               </h2>
               <p className="text-sm text-content-muted mt-1">Our lending partners will review your application within 24-48 hours.</p>
@@ -223,8 +223,8 @@ export default function FinanceClient() {
                     <button key={e} type="button" onClick={() => setEmployment(e)}
                       className={`px-4 py-2.5 rounded-xl text-sm font-semibold min-h-[44px] border transition-all ${
                         employment === e
-                          ? 'border-[#FFC700]/60 bg-[#FFC700]/10 text-[#FFC700]'
-                          : 'border-line bg-card text-content-muted hover:border-[#FFC700]/30'
+                          ? 'border-primary/60 bg-primary/10 text-primary-strong'
+                          : 'border-line bg-card text-content-muted hover:border-primary/30'
                       }`}>
                       {e === 'SELF_EMPLOYED' ? 'Self Employed' : e === 'SALARIED' ? 'Salaried' : 'Business'}
                     </button>
@@ -235,7 +235,7 @@ export default function FinanceClient() {
             <div className="p-3 rounded-xl bg-surface text-sm">
               <p className="text-content-muted">
                 By submitting, you agree to our{' '}
-                <span className="text-[#FFC700] font-semibold cursor-pointer">Terms &amp; Conditions</span> and consent to be contacted by our lending partners.
+                <span className="text-primary-strong font-semibold cursor-pointer">Terms &amp; Conditions</span> and consent to be contacted by our lending partners.
               </p>
             </div>
           </div>
@@ -244,8 +244,8 @@ export default function FinanceClient() {
         {/* Step 3: Confirmation */}
         {step === 3 && result && (
           <div className="space-y-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto">
-              <CheckCircle size={32} className="text-emerald-400" />
+            <div className="w-16 h-16 rounded-full bg-success/15 flex items-center justify-center mx-auto">
+              <CheckCircle size={32} className="text-success" />
             </div>
             <div>
               <h2 className="text-xl font-extrabold text-content">Application Submitted!</h2>
@@ -255,7 +255,7 @@ export default function FinanceClient() {
             </div>
             <div className="p-4 rounded-xl bg-surface space-y-2 max-w-sm mx-auto">
               <p className="text-xs text-content-muted uppercase tracking-wider font-semibold">Reference Number</p>
-              <p className="text-xl font-extrabold text-[#FFC700] font-mono">{result.referenceNo}</p>
+              <p className="text-xl font-extrabold text-primary-strong font-mono">{result.referenceNo}</p>
             </div>
             <div className="text-sm text-content-muted space-y-1 text-left max-w-sm mx-auto">
               <p className="font-semibold text-content">What happens next:</p>
@@ -275,7 +275,7 @@ export default function FinanceClient() {
             <button
               onClick={() => setStep((s) => s - 1)}
               disabled={step === 0}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-content-muted hover:text-content disabled:opacity-30 min-h-[44px]"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-content-muted hover:text-content disabled:opacity-50 min-h-[44px]"
             >
               <ArrowLeft size={16} /> Back
             </button>
@@ -283,7 +283,7 @@ export default function FinanceClient() {
               <button
                 onClick={() => setStep((s) => s + 1)}
                 disabled={!canNext()}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-40 min-h-[44px]"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-55 min-h-[44px]"
               >
                 Next <ArrowRight size={16} />
               </button>
@@ -291,7 +291,7 @@ export default function FinanceClient() {
               <button
                 onClick={() => void handleSubmit()}
                 disabled={!canNext() || submitting}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-40 min-h-[44px]"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-55 min-h-[44px]"
               >
                 {submitting ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
                 {submitting ? 'Submitting…' : 'Submit Application'}
@@ -304,9 +304,9 @@ export default function FinanceClient() {
       {/* Trust badges */}
       {step < 3 && (
         <div className="flex flex-wrap items-center justify-center gap-6 mt-6 text-xs text-content-muted">
-          <span className="flex items-center gap-1.5"><Shield size={14} className="text-emerald-400" /> 100% Secure</span>
-          <span className="flex items-center gap-1.5"><CheckCircle size={14} className="text-emerald-400" /> RBI-Registered Partners</span>
-          <span className="flex items-center gap-1.5"><Calculator size={14} className="text-emerald-400" /> No Hidden Charges</span>
+          <span className="flex items-center gap-1.5"><Shield size={14} className="text-success" /> 100% Secure</span>
+          <span className="flex items-center gap-1.5"><CheckCircle size={14} className="text-success" /> RBI-Registered Partners</span>
+          <span className="flex items-center gap-1.5"><Calculator size={14} className="text-success" /> No Hidden Charges</span>
         </div>
       )}
     </div>

@@ -15,6 +15,8 @@ import {
   LogOut,
 } from "lucide-react";
 
+import StatusBadge from "./ui/StatusBadge";
+
 /* ------------------------------------------------------------------ types */
 
 type CheckStatus = "PENDING" | "VERIFIED" | "FAILED" | "NOT_AVAILABLE";
@@ -126,7 +128,7 @@ function statusBadge(status: CheckStatus) {
       };
     case "NOT_AVAILABLE":
       return {
-        cls: "bg-muted/50 text-content-muted border-border",
+        cls: "bg-slate-100 text-slate-700 border-slate-200",
         icon: FileQuestion,
         label: "Not available",
       };
@@ -139,13 +141,10 @@ function statusBadge(status: CheckStatus) {
   }
 }
 
-const card = "rounded-xl border border-border bg-card p-5";
-const input =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-content focus:outline-none focus:ring-2 focus:ring-[#FFC700]/40";
-const btnPrimary =
-  "inline-flex items-center gap-1.5 rounded-lg bg-[#FFC700] px-3.5 py-2 text-sm font-semibold text-black transition hover:bg-[#FFD84D] disabled:opacity-50";
-const btnGhost =
-  "inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-content transition hover:bg-muted disabled:opacity-50";
+const card = "admin-card p-4 sm:p-5";
+const input = "admin-input";
+const btnPrimary = "admin-btn admin-btn-primary text-xs sm:text-sm";
+const btnGhost = "admin-btn admin-btn-secondary text-xs sm:text-sm";
 
 /**
  * `backendFetch` unwraps the backend envelope, so POST bodies are returned
@@ -235,38 +234,46 @@ export default function TrustPanel({ vehicles }: { vehicles: VehicleOption[] }) 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                tab === t.key
-                  ? "bg-[#FFC700] text-black"
-                  : "text-content-muted hover:text-content"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div
+          className="flex flex-wrap gap-1 rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] p-1"
+          role="group"
+          aria-label="Trust sections"
+        >
+          {tabs.map((t) => {
+            const isActive = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                aria-pressed={isActive}
+                className={`inline-flex min-h-10 items-center rounded-lg px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] ${
+                  isActive
+                    ? "bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))]"
+                    : "text-[hsl(var(--color-content-muted))] hover:bg-[hsl(var(--admin-surface-muted))] hover:text-[hsl(var(--color-content))]"
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
-        <button type="button" onClick={() => void load()} className={btnGhost}>
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        <button type="button" onClick={() => void load()} className={`ml-auto ${btnGhost}`}>
+          <RefreshCw className={`h-3.5 w-3.5 motion-reduce:animate-none ${loading ? "animate-spin" : ""}`} />
           Refresh
         </button>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-content-muted">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading trust data
+        <div className="admin-card flex items-center gap-2 p-5 text-sm text-[hsl(var(--color-content-muted))]" role="status">
+          <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> Loading trust data…
         </div>
       ) : tab === "history" ? (
         <HistoryTab vehicles={vehicles} checks={checks} onDone={load} />
@@ -420,7 +427,7 @@ function HistoryTab({
             No history checks recorded yet.
           </p>
         ) : (
-          <ul className="mt-3 divide-y divide-border">
+          <ul className="mt-3 divide-y divide-[hsl(var(--color-line))]">
             {checks.map((c) => {
               const b = statusBadge(c.status);
               const Icon = b.icon;
@@ -736,12 +743,12 @@ function WarrantyTab({
         )}
 
         {plans.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-content-muted">
+          <p className="mt-4 rounded-lg border border-dashed border-[hsl(var(--color-line-hover))] bg-[hsl(var(--admin-surface-muted))] p-4 text-sm text-[hsl(var(--color-content-muted))]">
             No warranty plans configured. The storefront will not offer cover
             until you add a real provider.
           </p>
         ) : (
-          <ul className="mt-4 divide-y divide-border">
+          <ul className="mt-4 divide-y divide-[hsl(var(--color-line))]">
             {plans.map((p) => (
               <li
                 key={p.id}
@@ -766,7 +773,7 @@ function WarrantyTab({
                     className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${
                       p.isActive
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-border bg-muted/50 text-content-muted"
+                        : "border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-content-muted))]"
                     }`}
                   >
                     {p.isActive ? "Active" : "Inactive"}
@@ -989,7 +996,7 @@ function ReturnsTab({
       )}
 
       {returns.length === 0 ? (
-        <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-content-muted">
+        <p className="mt-4 rounded-lg border border-dashed border-[hsl(var(--color-line-hover))] bg-[hsl(var(--admin-surface-muted))] p-4 text-sm text-[hsl(var(--color-content-muted))]">
           No return requests.
         </p>
       ) : (
@@ -997,7 +1004,7 @@ function ReturnsTab({
           {returns.map((r) => {
             const closed = r.status === "REJECTED" || r.status === "COMPLETED";
             return (
-              <li key={r.id} className="rounded-lg border border-border p-4">
+              <li key={r.id} className="rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-content">
@@ -1016,13 +1023,11 @@ function ReturnsTab({
                       &middot; {fmtDate(r.requestedAt)}
                     </p>
                   </div>
-                  <span className="rounded-full border border-border bg-muted/50 px-2.5 py-0.5 text-xs font-medium text-content-muted">
-                    {r.status.replace(/_/g, " ")}
-                  </span>
+                  <StatusBadge status={r.status} />
                 </div>
 
                 {r.resolutionNotes && (
-                  <p className="mt-2 rounded border border-border bg-muted/30 p-2 text-sm text-content-muted">
+                  <p className="mt-2 rounded-lg border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface-muted))] p-2 text-sm text-[hsl(var(--color-content-muted))]">
                     {r.resolutionNotes}
                   </p>
                 )}

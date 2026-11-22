@@ -87,7 +87,7 @@ export default function ChallanCheckForm() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFC700] to-yellow-500 px-6 py-3 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl disabled:opacity-60"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(var(--color-primary))] to-yellow-500 px-6 py-3 text-sm font-bold text-[#15130a] shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl disabled:opacity-60"
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
@@ -110,7 +110,7 @@ export default function ChallanCheckForm() {
         <div className="mt-6 rounded-2xl border border-line bg-card p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#FFC700]">
+              <p className="text-xs font-bold uppercase tracking-wider text-[hsl(var(--color-primary-strong))]">
                 {result.vehicle?.model}
               </p>
               <p className="mt-1 text-sm text-content-muted">
@@ -143,7 +143,7 @@ export default function ChallanCheckForm() {
                   </p>
                   <p
                     className={`text-xs font-bold ${
-                      c.status === "PENDING" ? "text-amber-600" : "text-[#FFC700]"
+                      c.status === "PENDING" ? "text-amber-600" : "text-[hsl(var(--color-primary-strong))]"
                     }`}
                   >
                     {c.status}
@@ -164,7 +164,7 @@ export default function ChallanCheckForm() {
             <span>
               Sample dataset for demonstration. Clear actual dues on your state
               transport portal before sale or transfer — see{" "}
-              <Link href="/car-check" className="font-semibold text-[#FFC700]">
+              <Link href="/car-check" className="font-semibold text-[hsl(var(--color-primary-strong))]">
                 Car Check
               </Link>
               .

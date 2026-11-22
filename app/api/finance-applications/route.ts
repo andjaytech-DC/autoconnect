@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/app/server/prisma";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { submitFinanceApplication } from "@/app/lib/finance-bff";
 import { readSessionCookie, verifySession } from "@/app/lib/auth";
 import { enforceRateLimit } from "@/app/lib/rate-limit";
 import { requireAdminSession } from "@/app/server/authz";
+
+export const runtime = "nodejs";
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -15,9 +19,9 @@ function normalizePhone(raw: string): string {
 
 const financeSchema = z.object({
   vehicleId: z.coerce.number().int().positive().optional(),
-  // Applicant identity fields (name/phone/email) are still accepted and
-  // validated so existing forms keep working, but FinanceApplication has no
-  // columns for them — see the POST handler note.
+  // The applicant's identity comes from the signed-in account on the backend.
+  // These fields are still validated so the existing form keeps working, but
+  // FinanceApplication has no columns for them, so they are not forwarded.
   applicantName: z.string().min(1).max(120),
   phone: z.string().min(7).max(20).transform(normalizePhone).pipe(z.string().regex(/^\d{10}$/, "Enter a valid 10-digit mobile number")),
   email: z.string().email().optional().or(z.literal("")),
@@ -28,7 +32,14 @@ const financeSchema = z.object({
   downPayment: z.coerce.number().int().min(0).default(0),
 });
 
-/** POST /api/finance-applications — public: apply for financing. */
+/**
+ * POST /api/finance-applications — a signed-in customer applies for financing.
+ *
+ * The application is owned by the account on the NestJS side, which is what
+ * lets the customer see it later and an underwriter act on it. Anonymous
+ * applications are therefore no longer accepted: they could not be shown back
+ * to anyone and stored no contact details at all.
+ */
 export async function POST(request: Request) {
   if (
     !(await enforceRateLimit(request, { limit: 10, key: "finance" })).ok
@@ -54,65 +65,49 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many requests, try again later" }, { status: 429 });
   }
 
+  const session = await verifySession(readSessionCookie(request));
+  if (!session?.token) {
+    return NextResponse.json(
+      { error: "Please sign in to apply for financing" },
+      { status: 401 },
+    );
+  }
+
+  const { vehicleId, monthlyIncome, loanAmount, tenureMonths, downPayment } = parsed.data;
   try {
-    const { vehicleId, monthlyIncome, loanAmount, tenureMonths, downPayment } = parsed.data;
-    const ref = "FA" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
-
-    // FinanceApplication stores no applicant name/phone/email — identity comes
-    // from the linked `userId`. A signed-in applicant is linked automatically;
-    // a guest's contact details are returned with the reference so the response
-    // is not lossy, but they are not persisted. See docs/schema-alignment.md.
-    const session = await verifySession(readSessionCookie(request));
-    const userId = session ? Number.parseInt(session.id, 10) : Number.NaN;
-
-    const app = await prisma.financeApplication.create({
-      data: {
-        ...(vehicleId ? { vehicleId } : {}),
-        ...(Number.isInteger(userId) ? { userId } : {}),
-        loanAmount,
-        monthlyIncome,
-        tenureMonths,
-        downPayment,
-        status: "SUBMITTED",
-      },
+    const application = await submitFinanceApplication(session.token, {
+      ...(vehicleId ? { vehicleId } : {}),
+      loanAmount,
+      tenureMonths,
+      downPayment,
+      monthlyIncome,
     });
-    return NextResponse.json({ data: { ...app, referenceNo: ref } }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Unable to submit finance application" }, { status: 500 });
+    return NextResponse.json({ data: application }, { status: 201 });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
 }
 
 /**
  * GET /api/finance-applications — admin: list applications.
  *
- * Stays ADMIN-only so the 401/403 contract is unchanged. The projection is
- * explicit rather than `include`-ing the whole row, so a future column cannot
- * silently widen what leaves the server, and `panNumber` is returned in full
- * only because every caller of this route is an administrator.
- *
- * The customer's own view is scoped to their session by the customer portal
- * (see `app/server/customer-portal.ts`); it never calls this route.
+ * Stays ADMIN-only so the 401/403 contract is unchanged. The role check runs
+ * here for the status code and again in NestJS (`@Roles('ADMIN')`), which is the
+ * one that actually decides.
  */
 export async function GET(request: Request) {
   const auth = await requireAdminSession(request);
   if (!auth.ok) return auth.response;
-  const items = await prisma.financeApplication.findMany({
-    select: {
-      id: true,
-      status: true,
-      loanAmount: true,
-      interestRate: true,
-      tenureMonths: true,
-      emi: true,
-      downPayment: true,
-      monthlyIncome: true,
-      employerName: true,
-      panNumber: true,
-      createdAt: true,
-      vehicle: { select: { id: true, title: true, price: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-  return NextResponse.json({ applications: items });
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
+  }
+  try {
+    const applications = await backendFetch<unknown[]>(
+      "/finance/admin/applications",
+      { token: auth.session.token },
+    );
+    return NextResponse.json({ applications: applications ?? [] });
+  } catch (err) {
+    return backendErrorResponse(err);
+  }
 }

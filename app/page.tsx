@@ -12,19 +12,24 @@ import {
   BentleySection,
   VehicleCollection,
   NewCarCollection,
+  PremiumCollection,
   ReviewsSection,
   SellValuationSection,
   FinalCtaSection,
   FloatingSocials,
+  WhatsAppChannelBanner,
 } from "@/app/components/home";
 import { getRecentReviews, type RealReview } from "@/app/lib/reviews";
 import { formatINRLakhs } from "@/app/lib/currency";
 import {
   getVehicles,
   getNewCars,
+  getPremiumVehicles,
+  getPremiumTags,
   mapVehicle,
   type UiVehicle,
   type NestNewCar,
+  type PremiumTag,
 } from "@/app/lib/nest-public";
 import { ApiError } from "@/app/lib/nest";
 
@@ -93,6 +98,10 @@ export default async function LandingPage() {
     luxuryRes,
     comingSoonRes,
     newCarsRes,
+    exclusiveRes,
+    exclusiveTagsRes,
+    resale50Res,
+    resale100Res,
   ] = await Promise.all([
     attempt(() => getVehicles({ dealerId: 6, status: "AVAILABLE", limit: 8 })),
     attempt(() => getVehicles({ status: "AVAILABLE", limit: 6 })),
@@ -100,13 +109,24 @@ export default async function LandingPage() {
     attempt(() => getVehicles({ status: "AVAILABLE", minPrice: 2500000, limit: 4 })),
     attempt(() => getVehicles({ status: "RESERVED", limit: 3 })),
     attempt(() => getNewCars({})),
+    // Admin-curated Exclusive Collection (NestJS owns membership and order).
+    attempt(() => getPremiumVehicles({ placement: "homepage", limit: 5 })),
+    attempt(() => getPremiumTags()),
+    // Pre-owned high-value tiers. Non-overlapping so a car appears in one tier
+    // only: ₹50 Lakh up to (not including) ₹1 Crore, and ₹1 Crore and above.
+    attempt(() => getVehicles({ status: "AVAILABLE", minPrice: 5000000, maxPrice: 9999999, limit: 4 })),
+    attempt(() => getVehicles({ status: "AVAILABLE", minPrice: 10000000, limit: 4 })),
   ]);
 
   const paCars: UiVehicle[] = (paRes.data?.items ?? []).map(mapVehicle);
   const featuredCars: UiVehicle[] = (featuredRes.data?.items ?? []).map(mapVehicle);
   const premiumCars: UiVehicle[] = (premiumRes.data?.items ?? []).map(mapVehicle);
   const luxuryCars: UiVehicle[] = (luxuryRes.data?.items ?? []).map(mapVehicle);
+  const resale50Cars: UiVehicle[] = (resale50Res.data?.items ?? []).map(mapVehicle);
+  const resale100Cars: UiVehicle[] = (resale100Res.data?.items ?? []).map(mapVehicle);
   const comingSoonCars: UiVehicle[] = (comingSoonRes.data?.items ?? []).map(mapVehicle);
+  const exclusiveCars: UiVehicle[] = (exclusiveRes.data?.items ?? []).map(mapVehicle);
+  const exclusiveTags: PremiumTag[] = exclusiveTagsRes.data ?? [];
   const rawNewCars = newCarsRes.data;
   const newCars: NestNewCar[] = Array.isArray(rawNewCars)
     ? rawNewCars
@@ -146,9 +166,9 @@ export default async function LandingPage() {
         <HeroSliderWrapper />
       </HeroSection>
 
-      <DealCategoryBar />
-
       <HeroSearchBar />
+
+      <DealCategoryBar />
 
       {catalogueDown && (
         <div className="container pb-16" role="alert">
@@ -173,6 +193,8 @@ export default async function LandingPage() {
 
       <FeaturedEditorial cars={featuredCars} />
 
+      <PremiumCollection cars={exclusiveCars} tags={exclusiveTags} />
+
       <ComingSoonSection cars={comingSoonCars} />
 
       {bentleyCar && <BentleySection car={bentleyCar} />}
@@ -195,6 +217,29 @@ export default async function LandingPage() {
         emptyMessage="Luxury cars coming soon."
       />
 
+      {/* Shown only when real listings exist in the tier — no empty filler. */}
+      {resale50Cars.length > 0 && (
+        <VehicleCollection
+          cars={resale50Cars}
+          eyebrow="Pre-owned · ₹50 Lakh to ₹1 Crore"
+          title="Resale cars ₹50 Lakh – ₹1 Crore"
+          viewAllHref="/cars?budget=50-100"
+          defaultBadge="Resale"
+          emptyMessage=""
+        />
+      )}
+
+      {resale100Cars.length > 0 && (
+        <VehicleCollection
+          cars={resale100Cars}
+          eyebrow="Pre-owned · ₹1 Crore and above"
+          title="Resale cars above ₹1 Crore"
+          viewAllHref="/cars?budget=100-"
+          defaultBadge="Resale"
+          emptyMessage=""
+        />
+      )}
+
       <NewCarCollection
         cars={newCars.slice(0, 4)}
         eyebrow="New Cars in India"
@@ -204,6 +249,8 @@ export default async function LandingPage() {
       />
 
       <ReviewsSection reviews={realReviews} />
+
+      <WhatsAppChannelBanner />
 
       <SellValuationSection />
 

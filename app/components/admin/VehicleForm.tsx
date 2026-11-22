@@ -1,9 +1,29 @@
 'use client';
 
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useId, useRef, useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { X, Upload, Star, AlertCircle, CheckCircle2, Loader2, ImagePlus, Trash2 } from 'lucide-react';
+import {
+  AlertCircle,
+  Car,
+  CheckCircle2,
+  ImagePlus,
+  Loader2,
+  MapPin,
+  Settings2,
+  Sparkles,
+  Star,
+  Tag,
+  Trash2,
+  Upload,
+  Video,
+  X,
+} from 'lucide-react';
 import { validateRegistrationNumber } from '@/app/lib/registration-number';
+import PremiumVehicleSection, {
+  premiumFromStored,
+  premiumToPayload,
+  type PremiumTagOption,
+} from '@/app/components/admin/PremiumVehicleSection';
 
 interface VehicleFormProps {
   onSuccess?: (vehicle: Record<string, unknown>) => void;
@@ -32,8 +52,6 @@ interface RefBrand { id: number; name: string; country?: string; isActive?: bool
 interface RefCategory { id: number; name: string; slug?: string; isActive?: boolean; vehicleCount?: number }
 interface RefDealer { id: number; name: string; businessName?: string; city?: string; state?: string; status?: string }
 
-
-
 const FUEL_TYPES = ['PETROL','DIESEL','ELECTRIC','HYBRID','CNG'];
 const TRANSMISSION_TYPES = ['MANUAL','AUTOMATIC','AMT','DCT','CVT'];
 const BODY_TYPES = ['SUV','Sedan','Hatchback','Compact SUV','Luxury SUV','MUV','Crossover'];
@@ -50,8 +68,6 @@ const LISTING_STATUS_OPTIONS = [
 ];
 const INDIAN_STATES = ['Uttar Pradesh','Maharashtra','Delhi','Karnataka','Tamil Nadu','Telangana','Gujarat','Rajasthan','West Bengal','Madhya Pradesh','Punjab','Haryana','Kerala','Bihar','Odisha','Jharkhand','Chhattisgarh','Assam','Andhra Pradesh','Goa'];
 
-
-
 const CITIES_BY_STATE: Record<string, string[]> = {
   'Uttar Pradesh': ['Noida','Lucknow','Kanpur','Varanasi','Agra'],
   'Maharashtra': ['Mumbai','Pune','Nagpur','Nashik','Thane'],
@@ -61,8 +77,11 @@ const CITIES_BY_STATE: Record<string, string[]> = {
   'Telangana': ['Hyderabad','Warangal'],
   'Gujarat': ['Ahmedabad','Surat','Vadodara'],
   'Rajasthan': ['Jaipur','Jodhpur','Udaipur'],
-};const inputCls = 'w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFC700]/40 bg-card text-content';
-const labelCls = 'block text-sm font-medium text-content mb-1.5';
+};
+
+const inputCls = 'admin-input';
+const labelCls = 'admin-label';
+const selectCls = 'admin-input';
 
 interface FieldProps {
   label: string;
@@ -71,42 +90,218 @@ interface FieldProps {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  sel?: boolean;
-  options?: string[];
+  hint?: string;
+  error?: string;
   min?: number | string;
   max?: number | string;
+  disabled?: boolean;
+  inputMode?: 'text' | 'numeric' | 'decimal';
 }
 
-function Field({ label, req, type, value, onChange, placeholder, sel, options, min, max }: FieldProps) {
-  if (sel) {
-    return (
-      <div>
-        <label className={labelCls}>{label}{req && <span className="text-red-500"> *</span>}</label>
-        <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-          {(options || []).map((o: string) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
-    );
-  }
+function Field({
+  label,
+  req,
+  type,
+  value,
+  onChange,
+  placeholder,
+  hint,
+  error,
+  min,
+  max,
+  disabled,
+  inputMode,
+}: FieldProps) {
+  const id = useId();
+  const hintId = `${id}-hint`;
+  const errorId = `${id}-error`;
   return (
     <div>
-      <label className={labelCls}>{label}{req && <span className="text-red-500"> *</span>}</label>
-      <input type={type || 'text'} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} min={min} max={max} className={inputCls} required={!!req} />
-    </div>
-  );
-}function Toggle({ label, checked, onChange, star }: { label: React.ReactNode; checked: boolean; onChange: (v: boolean) => void; star?: boolean }) {
-  return (
-    <div className="flex items-center gap-3 pt-6">
-      <label className="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
-        <div className="w-11 h-6 bg-surface border border-border rounded-full peer peer-checked:bg-[#FFC700] peer-checked:border-[#FFC700] transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#161b21] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+      <label htmlFor={id} className={labelCls}>
+        {label}
+        {req && (
+          <span className="ml-0.5 text-[hsl(var(--color-error))]" aria-hidden="true">
+            *
+          </span>
+        )}
+        {req && <span className="sr-only"> (required)</span>}
       </label>
-      <div className="flex items-center gap-1.5">{star && <Star size={16} className={checked ? 'text-amber-500 fill-amber-500' : 'text-content-muted'} />}<span className="text-sm font-medium text-content">{label}</span></div>
+      <input
+        id={id}
+        type={type || 'text'}
+        inputMode={inputMode}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        min={min}
+        max={max}
+        disabled={disabled}
+        className={inputCls + (disabled ? ' cursor-not-allowed opacity-70' : '')}
+        required={!!req}
+        aria-required={!!req}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={[hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined}
+      />
+      {hint && !error && (
+        <p id={hintId} className="form-hint">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} className="form-error">
+          <AlertCircle size={12} aria-hidden="true" /> {error}
+        </p>
+      )}
     </div>
   );
 }
+
+function SelectField({
+  label,
+  req,
+  value,
+  onChange,
+  options,
+  placeholder,
+  hint,
+  disabled,
+}: {
+  label: string;
+  req?: boolean;
+  value: string | number;
+  onChange: (v: string) => void;
+  options: Array<{ value: string | number; label: string }>;
+  placeholder?: string;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  const id = useId();
+  const hintId = `${id}-hint`;
+  return (
+    <div>
+      <label htmlFor={id} className={labelCls}>
+        {label}
+        {req && (
+          <span className="ml-0.5 text-[hsl(var(--color-error))]" aria-hidden="true">
+            *
+          </span>
+        )}
+        {req && <span className="sr-only"> (required)</span>}
+      </label>
+      <select
+        id={id}
+        value={String(value)}
+        onChange={(e) => onChange(e.target.value)}
+        className={selectCls + (disabled ? ' cursor-not-allowed opacity-70' : '')}
+        disabled={disabled}
+        required={!!req}
+        aria-required={!!req}
+        aria-describedby={hint ? hintId : undefined}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map((o) => (
+          <option key={o.value} value={String(o.value)}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {hint && (
+        <p id={hintId} className="form-hint">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+  star,
+}: {
+  label: React.ReactNode;
+  description?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  star?: boolean;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] p-3.5 transition-colors hover:border-[hsl(var(--color-line-hover))] focus-within:ring-2 focus-within:ring-[hsl(var(--color-focus))]">
+      <span className="relative mt-0.5 inline-flex shrink-0">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="peer sr-only"
+        />
+        <span className="block h-6 w-11 rounded-full border border-[hsl(var(--color-line-hover))] bg-slate-200 transition-colors peer-checked:border-[hsl(var(--color-primary))] peer-checked:bg-[hsl(var(--color-primary))]" />
+        <span className="absolute left-0.5 top-0.5 block h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-[hsl(var(--color-content))]">
+          {star && (
+            <Star
+              size={15}
+              className={checked ? 'fill-amber-500 text-amber-600' : 'text-[hsl(var(--color-content-faint))]'}
+              aria-hidden="true"
+            />
+          )}
+          {label}
+        </span>
+        {description && (
+          <span className="mt-0.5 block text-xs leading-5 text-[hsl(var(--color-content-muted))]">
+            {description}
+          </span>
+        )}
+      </span>
+    </label>
+  );
+}
+
+/** A titled card for one logical group of fields. */
+function FormSection({
+  id,
+  icon: Icon,
+  title,
+  description,
+  children,
+  action,
+}: {
+  id: string;
+  icon: React.ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean }>;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section className="admin-card overflow-hidden" aria-labelledby={`${id}-heading`}>
+      <div className="flex items-start justify-between gap-3 border-b border-[hsl(var(--color-line))] px-4 py-4 sm:px-5">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-primary-strong))]">
+            <Icon size={17} aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 id={`${id}-heading`} className="text-base font-bold tracking-tight text-[hsl(var(--color-content))]">
+              {title}
+            </h2>
+            <p className="mt-0.5 text-xs leading-5 text-[hsl(var(--color-content-muted))]">
+              {description}
+            </p>
+          </div>
+        </div>
+        {action}
+      </div>
+      <div className="p-4 sm:p-5">{children}</div>
+    </section>
+  );
+}
+
 export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMode, lockedDealerId, lockedDealerLabel }: VehicleFormProps) {
   const VIDEO_FORMAT_TEXT = "MP4" + String.fromCharCode(47) + "WebM";
+  const formId = useId();
   const d = (k: string): string => (initialData ? String((initialData as Record<string, unknown>)[k] ?? '') : '');
   const dBool = (k: string, fallback: boolean): boolean => (initialData ? Boolean((initialData as Record<string, unknown>)[k] ?? fallback) : fallback);
   const dArr = (k: string): string[] => {
@@ -128,16 +323,18 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
     isCertified: dBool('isCertified', false), availableForFinance: dBool('availableForFinance', true), images: dArr('images'),
     videoUrl: d('videoUrl') || '', videoThumbnail: d('videoThumbnail') || '', videoTitle: d('videoTitle') || '',
   });
-  // Edit mode: initialData with an id switches the submit to PATCH and the
-  // copy to "update" wording (the edit route reuses this form).
   const editId = initialData && Number(initialData.id) ? Number(initialData.id) : null;
+  const premiumTagOptions = (initialData?.premiumTagOptions as PremiumTagOption[] | undefined) ?? null;
+  const storedPremium = (initialData?.premium as Parameters<typeof premiumFromStored>[0]) ?? null;
+  const showPremium = !dealerMode && !!editId && !!premiumTagOptions && !!storedPremium;
+  const initialPremium = useMemo(() => premiumFromStored(storedPremium), [storedPremium]);
+  const [premium, setPremium] = useState(initialPremium);
   const [imageUrl, setImageUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoadingRefs, setIsLoadingRefs] = useState(true);
 
-  // The number plate is required: without it the RTO/VAHAN history check can
-  // never run, which is the point of the trust layer.
   const plateCheck = useMemo(
     () => validateRegistrationNumber(formData.registrationNumber),
     [formData.registrationNumber],
@@ -147,28 +344,21 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
   const [brands, setBrands] = useState<RefBrand[]>([]);
   const [categories, setCategories] = useState<RefCategory[]>([]);
   const [dealers, setDealers] = useState<RefDealer[]>([]);
-  // Direct file upload (POST /api/upload) — any authenticated user (admin
-  // vehicle manager, dealer inventory form). Files land in formData.images
-  // as /uploads/*.webp URLs, clearing the image error on success.
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; current: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
-  // Uploaded file URLs created by THIS form instance, tracked so a cancel
-  // can discard them (orphan cleanup). Cleared once the vehicle is saved.
+  const MAX_IMAGES = 20;
   const uploadedRef = useRef<string[]>([]);
   const submittedRef = useRef(false);
-  // Pending single-image deletion: set by the thumbnail × button, executed
-  // only after the confirmation modal is accepted.
   const [pendingDelete, setPendingDelete] = useState<{ index: number; url: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    // Public catalog endpoints work for every role; /api/admin/lookups is
-    // ADMIN-only so dealer mode must not call it (dealers get 401 + empty
-    // selectors). Dealer selector stays locked to lockedDealerId anyway.
+    // `isLoadingRefs` starts true, so the first paint already shows the load
+    // state; the effect only resolves it once the reference data arrives.
     if (dealerMode) {
       Promise.all([
         fetch('/api/brands').then((r) => r.json()).catch(() => ({ brands: [] })),
@@ -177,7 +367,8 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
         setBrands(b.brands || []);
         setCategories(c.categories || []);
         setDealers([]);
-      }).catch(() => { setBrands([]); setCategories([]); setDealers([]); });
+        setIsLoadingRefs(false);
+      }).catch(() => { setBrands([]); setCategories([]); setDealers([]); setIsLoadingRefs(false); });
       return;
     }
     fetch('/api/admin/lookups')
@@ -185,14 +376,14 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
       .then((d) => {
         setBrands(d.brands || []);
         setCategories(d.categories || []);
-        // Only show APPROVED dealers in the selector for admins
         setDealers(
           (d.dealers || []).filter(
-            (dl: { status?: string | null }) => dl.status === "APPROVED",
+            (dl: { status?: string | null }) => !dl.status || dl.status === "APPROVED",
           ),
         );
+        setIsLoadingRefs(false);
       })
-      .catch(() => { setBrands([]); setCategories([]); setDealers([]); });
+      .catch(() => { setBrands([]); setCategories([]); setDealers([]); setIsLoadingRefs(false); });
   }, [dealerMode]);
 
   const cities = CITIES_BY_STATE[formData.state] || ['Noida'];
@@ -202,24 +393,22 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
     setFormData(pv => ({ ...pv, state, city: cs[0], registrationState: state })); setError(''); setSuccess('');
   };
   const addImageUrl = () => {
-    // Accept pasted URLs and uploaded paths (/uploads/*.webp); anything
-    // non-empty counts — validation only requires >= 1 image.
     const v = imageUrl.trim();
     if (!v) return;
+    if (formData.images.length >= MAX_IMAGES) {
+      setError(`Maximum ${MAX_IMAGES} images allowed per vehicle.`);
+      return;
+    }
     setFormData(pv => ({ ...pv, images: [...pv.images, v] }));
     setImageUrl('');
     setError('');
     setSuccess('');
   };
-  // Stage (not execute) an image removal — the confirmation modal decides.
   const removeImage = (i: number) => { setPendingDelete({ index: i, url: formData.images[i] }); setError(''); setSuccess(''); };
-  /** Execute the confirmed deletion: drop it from the list and physically
-   *  delete the stored asset (disk /uploads file or Cloudinary object). */
   const confirmRemoveImage = async () => {
     if (!pendingDelete) return;
     const { index, url } = pendingDelete;
     setPendingDelete(null);
-    // Only managed storage is cleaned up — external pasted URLs are not ours.
     const isManaged = url.startsWith('/uploads/') || url.includes('res.cloudinary.com');
     if (isManaged) {
       setIsDeleting(true);
@@ -245,8 +434,6 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
   const handleFiles = async (files: FileList | File[] | null) => {
     const list = files ? Array.from(files) : [];
     if (list.length === 0) return;
-    // Client-side payload guard: mirror the server's 10MB rule per file so
-    // oversized drops fail fast with a named message instead of a 413 round-trip.
     const MAX_BYTES = 10 * 1024 * 1024;
     const oversized = list.filter((f) => f.size > MAX_BYTES);
     if (oversized.length > 0) {
@@ -255,6 +442,11 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
           ? `“${oversized[0].name}” exceeds the 10MB limit — compress or pick a smaller file.`
           : `${oversized.length} files exceed the 10MB limit: ${oversized.map((f) => f.name).join(', ')}.`
       );
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+    if (formData.images.length + list.length > MAX_IMAGES) {
+      setUploadError(`Maximum ${MAX_IMAGES} images allowed per vehicle. You have ${formData.images.length}, trying to add ${list.length}.`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -284,17 +476,28 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setSuccess('');
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setError('');
+    setSuccess('');
+
+    // Wait for reference data to load
+    if (isLoadingRefs) {
+      setError('Please wait for reference data to load...');
+      return;
+    }
+
+    // Validate plate first
     if (!plateValid) {
       setError(
         `Registration number is required and must be a valid Indian plate. ${plateError}`,
       );
       return;
     }
-    // Auto-commit a typed-but-unadded URL so users who paste then hit
-    // Create (without clicking Add Image) don't hit a stale-state error.
+
+    // Auto-commit a typed-but-unadded URL
     let images = formData.images;
     const pending = imageUrl.trim();
     if (images.length === 0 && pending) {
@@ -302,21 +505,43 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
       setFormData(pv => ({ ...pv, images }));
       setImageUrl('');
     }
+
+    // Validation matching backend createSchema exactly
+    const errors: string[] = [];
     const brandName = brands.find((b) => b.id === formData.brandId)?.name || '';
-    if (!brandName) return setError('Brand is required');
-    if (!formData.model.trim()) return setError('Model is required');
-    if (!formData.year.trim()) return setError('Year is required');
-    if (!formData.price.trim()) return setError('Price is required');
-    if (!formData.mileage.trim()) return setError('Mileage is required');
-    if (!formData.color.trim()) return setError('Color is required');
-    if (!formData.city.trim()) return setError('City is required');
-    if (images.length === 0) return setError('At least one image is required');
-    if (!formData.brandId) return setError('Brand is required');
-    if (!formData.categoryId) return setError('Category is required');
-    if (!formData.dealerId) return setError('Dealer is required');
-    
-    // Dealer approval is verified server-side by the backend API
-    
+    if (!brandName) errors.push('Brand is required');
+    if (!formData.model.trim()) errors.push('Model is required');
+    // variant is optional — only used for title construction
+    if (!formData.year.trim()) errors.push('Year is required');
+    if (!formData.price.trim()) errors.push('Price is required');
+    if (!formData.mileage.trim()) errors.push('Mileage is required');
+    if (!formData.fuel) errors.push('Fuel type is required');
+    if (!formData.transmission) errors.push('Transmission is required');
+    if (!formData.color.trim()) errors.push('Color is required');
+    // bodyType is optional in backend
+    if (!formData.city.trim()) errors.push('City is required');
+    // state is optional in backend
+    // registrationState is optional in backend
+    if (images.length === 0) errors.push('At least one image is required');
+    if (!formData.brandId || formData.brandId <= 0) errors.push('Brand is required');
+    if (!formData.categoryId || formData.categoryId <= 0) errors.push('Category is required');
+    // dealerId: must be positive number (0 is invalid)
+    if (!formData.dealerId || formData.dealerId <= 0) errors.push('Dealer is required');
+    if (!formData.registrationNumber.trim()) errors.push('Registration number is required');
+
+    // Validate numeric fields
+    const priceNum = Number(formData.price);
+    const yearNum = Number(formData.year);
+    const mileageNum = Number(formData.mileage);
+    if (priceNum <= 0) errors.push('Price must be greater than 0');
+    if (yearNum < 1900 || yearNum > new Date().getFullYear() + 1) errors.push(`Year must be between 1900 and ${new Date().getFullYear() + 1}`);
+    if (mileageNum < 0) errors.push('Mileage cannot be negative');
+
+    if (errors.length > 0) {
+      setError(errors.join(' · '));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const title = formData.variant.trim() ? brandName + ' ' + formData.model + ' ' + formData.variant : brandName + ' ' + formData.model;
@@ -344,14 +569,13 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
         videoUrl: formData.videoUrl || undefined,
         videoThumbnail: formData.videoThumbnail || undefined,
         videoTitle: formData.videoTitle || undefined,
+        premium: showPremium ? premiumToPayload(premium, initialPremium) : undefined,
       };
       if (editId) {
-        // Edit mode — update the existing vehicle (specs, status, imagery).
         const response = await fetch('/api/vehicles/' + editId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || data.error || 'Failed to update vehicle');
         setSuccess('Vehicle updated successfully!');
-        // The vehicle still owns its files — do NOT discard them.
         submittedRef.current = true;
         uploadedRef.current = [];
         if (onSuccess) onSuccess(data.data);
@@ -366,18 +590,19 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
         city: 'Noida', state: 'Uttar Pradesh', pincode: '', description: '', features: '', highlights: '', status: 'DRAFT',
         listingStatus: 'DRAFT',
         isFeatured: false, isCertified: false, availableForFinance: true, images: [], videoUrl: '', videoThumbnail: '', videoTitle: '' });
-      if (onSuccess) onSuccess(data.data);
-      // Success: the vehicle now owns these files — do NOT discard them.
       submittedRef.current = true;
       uploadedRef.current = [];
-      setTimeout(() => window.location.reload(), 1500);
+      if (onSuccess) {
+        onSuccess(data.data);
+      } else {
+        // Embedded usage without a navigation callback: refresh so the new
+        // vehicle appears in the surrounding inventory.
+        setTimeout(() => window.location.reload(), 1200);
+      }
     } catch (err) { const msg = err instanceof Error ? err.message : 'An error occurred'; setError(msg); }
     finally { setIsSubmitting(false); }
   };
 
-  // Best-effort orphan cleanup when the user closes/discards the form without
-  // saving: POST the /uploads/*.webp files this instance created so the
-  // server can remove them from disk (see /api/upload/cleanup).
   const discard = () => {
     if (!submittedRef.current && uploadedRef.current.length > 0) {
       void fetch('/api/upload/cleanup', {
@@ -390,253 +615,737 @@ export default function VehicleForm({ onSuccess, onCancel, initialData, dealerMo
     if (onCancel) onCancel();
   };
 
+  const brandOptions = brands.map(b => ({ value: b.id, label: b.name }));
+  const categoryOptions = categories.map(c => ({ value: c.id, label: c.name }));
+  const dealerOptions = dealers.map(dl => ({ value: dl.id, label: dl.name + (dl.city ? ` — ${dl.city}` : '') }));
+  const fuelOptions = FUEL_TYPES.map(f => ({ value: f, label: f }));
+  const transmissionOptions = TRANSMISSION_TYPES.map(t => ({ value: t, label: t }));
+  const bodyTypeOptions = BODY_TYPES.map(b => ({ value: b, label: b }));
+  const statusOptions = STATUS_OPTIONS.map(o => ({ value: o.value, label: o.label }));
+  const listingStatusOptions = LISTING_STATUS_OPTIONS.map(o => ({ value: o.value, label: o.label }));
+  const stateOptions = INDIAN_STATES.map(s => ({ value: s, label: s }));
+  const cityOptions = cities.map(c => ({ value: c, label: c }));
+  const registrationStateOptions = INDIAN_STATES.map(s => ({ value: s, label: s }));
+
   return (
-  <div className="bg-card rounded-2xl border border-line p-6">
-    <div className="flex items-center justify-between mb-6">
-      <h2 className="text-xl font-bold text-content">{initialData ? 'Edit Vehicle' : 'Add New Vehicle'}</h2>
-      {onCancel && <button type="button" onClick={discard} className="p-2 hover:bg-surface rounded-lg" aria-label="Close"><X size={20} className="text-content-muted" /></button>}
-    </div>
-    {error && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3"><AlertCircle size={20} className="text-red-400 flex-shrink-0" /><p className="text-sm text-red-400">{error}</p></div>}
-    {success && <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-3"><CheckCircle2 size={20} className="text-[#FFC700] flex-shrink-0" /><p className="text-sm text-emerald-400">{success}</p></div>}
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-content-muted mb-4">Basic Information</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <label className={labelCls}>Brand<span className="text-red-500"> *</span></label>
-            <select value={formData.brandId} onChange={(e) => set('brandId', Number(e.target.value))} className={inputCls} aria-label="Brand">
-              <option value={0}>Select Brand</option>
-              {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+    <div className="space-y-4">
+      <div className="admin-card p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold tracking-tight text-[hsl(var(--color-content))]">
+              {editId ? 'Vehicle details' : 'New vehicle details'}
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-[hsl(var(--color-content-muted))]">
+              {editId
+                ? 'Changes are written to the live marketplace record. Fields marked with an asterisk are required.'
+                : 'Complete the listing in logical sections. You can keep it as a draft and publish it later.'}
+            </p>
           </div>
-          <Field label="Model" req value={formData.model} onChange={(v: string) => set('model', v)} placeholder="e.g., Creta" />
-          <Field label="Variant" value={formData.variant} onChange={(v: string) => set('variant', v)} placeholder="e.g., SX (O)" />
-          <div>
-            <label className={labelCls}>Category<span className="text-red-500"> *</span></label>
-            <select value={formData.categoryId} onChange={(e) => set('categoryId', Number(e.target.value))} className={inputCls} aria-label="Category">
-              <option value={0}>Select Category</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Dealer<span className="text-red-500"> *</span></label>
-            {dealerMode ? (
-              <input value={lockedDealerLabel || 'Your dealership'} disabled className={inputCls + ' opacity-70 cursor-not-allowed'} aria-label="Dealership (locked)" />
-            ) : (
-            <select value={formData.dealerId} onChange={(e) => set('dealerId', Number(e.target.value))} className={inputCls} aria-label="Dealer">
-              <option value={0}>Select Dealer</option>
-              {dealers.map((dl) => <option key={dl.id} value={dl.id}>{dl.name}{dl.city ? ` — ${dl.city}` : ''}</option>)}
-            </select>
-            )}
-          </div>
-          <Field label="Year" req type="number" value={formData.year} onChange={(v: string) => set('year', v)} min="1990" max={new Date().getFullYear() + 1} />
-          <Field label="Price (Rs)" req type="number" value={formData.price} onChange={(v: string) => set('price', v)} placeholder="1450000" min="0" />
-          <Field label="Mileage (km)" req type="number" value={formData.mileage} onChange={(v: string) => set('mileage', v)} placeholder="18500" min="0" />
-          <Field label="Fuel Type" req sel value={formData.fuel} onChange={(v: string) => set('fuel', v)} options={FUEL_TYPES} />
-          <Field label="Transmission" req sel value={formData.transmission} onChange={(v: string) => set('transmission', v)} options={TRANSMISSION_TYPES} />
-          <Field label="Body Type" sel value={formData.bodyType} onChange={(v: string) => set('bodyType', v)} options={BODY_TYPES} />
-          <Field label="Color" req value={formData.color} onChange={(v: string) => set('color', v)} placeholder="e.g., Polar White" />
+          {onCancel && (
+            <button
+              type="button"
+              onClick={discard}
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-[hsl(var(--color-content-muted))] transition-colors hover:bg-[hsl(var(--admin-surface-muted))] hover:text-[hsl(var(--color-content))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]"
+              aria-label="Close the vehicle form"
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          )}
         </div>
-      </section>
+      </div>
 
-      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-content-muted mb-4">Registration</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+      {error && (
+        <div
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+          role="alert"
+        >
+          <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
           <div>
-            <Field req label="Registration Number" value={formData.registrationNumber} onChange={(v: string) => set('registrationNumber', v.toUpperCase())} placeholder="UP16AB1234" />
-            {formData.registrationNumber.trim() !== '' && !plateValid && (
-              <p className="mt-1 text-xs text-red-500">{plateError}</p>
-            )}
-            {formData.registrationNumber.trim() === '' && (
-              <p className="mt-1 text-xs text-content-muted">
-                Required. Used to run the RTO/VAHAN history check.
-              </p>
-            )}
+            <p className="font-semibold">The vehicle was not saved</p>
+            <p className="mt-0.5 leading-6">{error}</p>
           </div>
-          <Field label="Registration State" sel value={formData.registrationState} onChange={(v: string) => set('registrationState', v)} options={INDIAN_STATES} />
         </div>
-      </section>      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-content-muted mb-4">Location</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className={labelCls}>State <span className="text-red-500">*</span></label>
-            <select value={formData.state} onChange={(e) => handleStateChange(e.target.value)} className={inputCls}>{INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select>
-          </div>
-          <div>
-            <label className={labelCls}>City <span className="text-red-500">*</span></label>
-            <select value={formData.city} onChange={(e) => set('city', e.target.value)} className={inputCls}>{cities.map(c => <option key={c} value={c}>{c}</option>)}</select>
-          </div>
-          <Field label="Pincode" value={formData.pincode} onChange={(v: string) => set('pincode', v)} placeholder="201301" />
+      )}
+      {success && (
+        <div
+          className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+          role="status"
+        >
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <p className="font-medium">{success}</p>
         </div>
-      </section>
+      )}
 
-      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-content-muted mb-4">Description</h3>
-        <div className="space-y-4">
-          <div>
-            <label className={labelCls}>Vehicle Description</label>
-            <textarea value={formData.description} onChange={(e) => set('description', e.target.value)} rows={4} placeholder="Detailed description..." className={inputCls + ' resize-none'} />
+      {isLoadingRefs && (
+        <div
+          className="flex items-center gap-3 rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface))] p-4"
+          role="status"
+        >
+          <Loader2 size={18} className="shrink-0 animate-spin text-[hsl(var(--color-primary-strong))]" aria-hidden="true" />
+          <p className="text-sm text-[hsl(var(--color-content-muted))]">
+            Loading brands, categories and dealers…
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormSection
+          id={`${formId}-basic`}
+          icon={Car}
+          title="Basic information"
+          description="Identify the vehicle and assign it to a brand, category and dealer."
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <SelectField
+              label="Brand"
+              req
+              value={formData.brandId}
+              onChange={(v) => set('brandId', Number(v))}
+              options={brandOptions}
+              placeholder="Select brand"
+              disabled={isLoadingRefs}
+            />
+            <Field
+              label="Model"
+              req
+              value={formData.model}
+              onChange={(v: string) => set('model', v)}
+              placeholder="e.g., Creta"
+            />
+            <Field
+              label="Variant"
+              value={formData.variant}
+              onChange={(v: string) => set('variant', v)}
+              placeholder="e.g., SX (O)"
+              hint="Optional. Appended to the generated listing title."
+            />
+            <SelectField
+              label="Category"
+              req
+              value={formData.categoryId}
+              onChange={(v) => set('categoryId', Number(v))}
+              options={categoryOptions}
+              placeholder="Select category"
+              disabled={isLoadingRefs}
+            />
+            <div>
+              <label className={labelCls} htmlFor={`${formId}-dealer`}>
+                Dealer
+                <span className="ml-0.5 text-[hsl(var(--color-error))]" aria-hidden="true">*</span>
+                <span className="sr-only"> (required)</span>
+              </label>
+              {dealerMode ? (
+                <input
+                  id={`${formId}-dealer`}
+                  value={lockedDealerLabel || 'Your dealership'}
+                  disabled
+                  className={inputCls + ' cursor-not-allowed opacity-70'}
+                  aria-label="Dealership (locked)"
+                />
+              ) : (
+                <select
+                  id={`${formId}-dealer`}
+                  value={formData.dealerId}
+                  onChange={(e) => set('dealerId', Number(e.target.value))}
+                  className={selectCls}
+                  disabled={isLoadingRefs}
+                  required
+                  aria-required
+                >
+                  <option value={0}>Select dealer</option>
+                  {dealerOptions.map((dl) => (
+                    <option key={dl.value} value={dl.value}>{dl.label}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <Field
+              label="Colour"
+              req
+              value={formData.color}
+              onChange={(v: string) => set('color', v)}
+              placeholder="e.g., Polar White"
+            />
           </div>
+        </FormSection>
+
+        <FormSection
+          id={`${formId}-specs`}
+          icon={Tag}
+          title="Specifications & pricing"
+          description="The figures customers use to compare this vehicle."
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Field
+              label="Price (₹)"
+              req
+              type="number"
+              inputMode="numeric"
+              value={formData.price}
+              onChange={(v: string) => set('price', v)}
+              placeholder="1450000"
+              min="1"
+              hint="Ex-showroom price in Indian rupees."
+            />
+            <Field
+              label="Year"
+              req
+              type="number"
+              inputMode="numeric"
+              value={formData.year}
+              onChange={(v: string) => set('year', v)}
+              min="1900"
+              max={new Date().getFullYear() + 1}
+            />
+            <Field
+              label="Mileage (km)"
+              req
+              type="number"
+              inputMode="numeric"
+              value={formData.mileage}
+              onChange={(v: string) => set('mileage', v)}
+              placeholder="18500"
+              min="0"
+            />
+            <SelectField
+              label="Fuel type"
+              req
+              value={formData.fuel}
+              onChange={(v: string) => set('fuel', v)}
+              options={fuelOptions}
+            />
+            <SelectField
+              label="Transmission"
+              req
+              value={formData.transmission}
+              onChange={(v: string) => set('transmission', v)}
+              options={transmissionOptions}
+            />
+            <SelectField
+              label="Body type"
+              value={formData.bodyType}
+              onChange={(v: string) => set('bodyType', v)}
+              options={bodyTypeOptions}
+              placeholder="Select body type"
+            />
+          </div>
+        </FormSection>
+
+        <FormSection
+          id={`${formId}-registration`}
+          icon={MapPin}
+          title="Registration & location"
+          description="Used for the RTO/VAHAN history check and for local inventory search."
+        >
           <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Registration number"
+              req
+              value={formData.registrationNumber}
+              onChange={(v: string) => set('registrationNumber', v.toUpperCase())}
+              placeholder="UP16AB1234"
+              hint="Required. Used to run the RTO/VAHAN history check."
+              error={
+                formData.registrationNumber.trim() !== '' && !plateValid
+                  ? plateError
+                  : undefined
+              }
+            />
+            <SelectField
+              label="Registration state"
+              value={formData.registrationState}
+              onChange={(v: string) => set('registrationState', v)}
+              options={registrationStateOptions}
+              placeholder="Select registration state"
+            />
             <div>
-              <label className={labelCls}>Features (comma-separated)</label>
-              <textarea value={formData.features} onChange={(e) => set('features', e.target.value)} rows={3} placeholder="Sunroof, Leather seats" className={inputCls + ' resize-none'} />
+              <label className={labelCls} htmlFor={`${formId}-state`}>
+                State
+                <span className="ml-0.5 text-[hsl(var(--color-error))]" aria-hidden="true">*</span>
+                <span className="sr-only"> (required)</span>
+              </label>
+              <select
+                id={`${formId}-state`}
+                value={formData.state}
+                onChange={(e) => handleStateChange(e.target.value)}
+                className={selectCls}
+                required
+                aria-required
+              >
+                {stateOptions.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <label className={labelCls}>Highlights (comma-separated)</label>
-              <textarea value={formData.highlights} onChange={(e) => set('highlights', e.target.value)} rows={3} placeholder="Single owner, Service records" className={inputCls + ' resize-none'} />
+              <label className={labelCls} htmlFor={`${formId}-city`}>
+                City
+                <span className="ml-0.5 text-[hsl(var(--color-error))]" aria-hidden="true">*</span>
+                <span className="sr-only"> (required)</span>
+              </label>
+              <select
+                id={`${formId}-city`}
+                value={formData.city}
+                onChange={(e) => set('city', e.target.value)}
+                className={selectCls}
+                required
+                aria-required
+              >
+                {cityOptions.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
             </div>
+            <Field
+              label="Pincode"
+              value={formData.pincode}
+              onChange={(v: string) => set('pincode', v)}
+              placeholder="201301"
+              inputMode="numeric"
+            />
           </div>
-        </div>
-      </section>      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-content-muted mb-4">Inventory Settings</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className={labelCls}>Status <span className="text-red-500">*</span></label>
-            <select value={formData.status} onChange={(e) => set('status', e.target.value)} className={inputCls}>{STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-          </div>
-          <div>
-            <label className={labelCls}>Listing Visibility <span className="text-red-500">*</span></label>
-            <select value={formData.listingStatus} onChange={(e) => set('listingStatus', e.target.value)} className={inputCls} aria-label="Listing visibility">{LISTING_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-          </div>
-          {!dealerMode && <Toggle label="Featured" checked={formData.isFeatured} onChange={(v) => set('isFeatured', v)} star />}
-          <Toggle label="Certified" checked={formData.isCertified} onChange={(v) => set('isCertified', v)} />
-          <Toggle label="Finance Available" checked={formData.availableForFinance} onChange={(v) => set('availableForFinance', v)} />
-        </div>
-        {dealerMode && <p className="text-xs text-content-muted mt-2">New listings go live as Available under your dealership. Featured placement is managed by admins.</p>}
-      </section>
+        </FormSection>
 
-      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-content-muted mb-4">Vehicle Images <span className="text-red-500">*</span></h3>
-        <div className="flex gap-3 mb-3">
-          <input type="url" value={imageUrl} onChange={(e) => { setImageUrl(e.target.value); if (error) setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addImageUrl(); } }} placeholder="https://example.com/car-image.jpg" className={inputCls + ' flex-1'} aria-label="Image URL" />
-          <button type="button" onClick={addImageUrl} disabled={!imageUrl.trim()} className="px-4 py-2.5 bg-[#FFC700] text-[#15130a] rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 flex items-center gap-2"><Upload size={16} /> Add Image</button>
-        </div>
-        <div className="mb-4">
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => void handleFiles(e.target.files)} aria-label="Upload images from device" />
-          {/* Drop zone: click to browse, or drag & drop files. */}
+        <FormSection
+          id={`${formId}-description`}
+          icon={Sparkles}
+          title="Description & highlights"
+          description="Explain the condition and the details that make this vehicle stand out."
+        >
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls} htmlFor={`${formId}-vehicle-description`}>
+                Vehicle description
+              </label>
+              <textarea
+                id={`${formId}-vehicle-description`}
+                value={formData.description}
+                onChange={(e) => set('description', e.target.value)}
+                rows={4}
+                placeholder="Condition, ownership history and anything a buyer should know…"
+                className={inputCls + ' resize-y'}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelCls} htmlFor={`${formId}-features`}>
+                  Features
+                </label>
+                <textarea
+                  id={`${formId}-features`}
+                  value={formData.features}
+                  onChange={(e) => set('features', e.target.value)}
+                  rows={3}
+                  placeholder="Sunroof, Leather seats, 360° camera"
+                  className={inputCls + ' resize-y'}
+                  aria-describedby={`${formId}-features-hint`}
+                />
+                <p id={`${formId}-features-hint`} className="form-hint">
+                  Separate each feature with a comma.
+                </p>
+              </div>
+              <div>
+                <label className={labelCls} htmlFor={`${formId}-highlights`}>
+                  Highlights
+                </label>
+                <textarea
+                  id={`${formId}-highlights`}
+                  value={formData.highlights}
+                  onChange={(e) => set('highlights', e.target.value)}
+                  rows={3}
+                  placeholder="Single owner, Full service records"
+                  className={inputCls + ' resize-y'}
+                  aria-describedby={`${formId}-highlights-hint`}
+                />
+                <p id={`${formId}-highlights-hint`} className="form-hint">
+                  Separate each highlight with a comma.
+                </p>
+              </div>
+            </div>
+          </div>
+        </FormSection>
+
+        <FormSection
+          id={`${formId}-publishing`}
+          icon={Settings2}
+          title="Publishing settings"
+          description="Control the operational status and whether the listing is visible on the storefront."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              label="Operational status"
+              req
+              value={formData.status}
+              onChange={(v: string) => set('status', v)}
+              options={statusOptions}
+            />
+            <SelectField
+              label="Listing visibility"
+              req
+              value={formData.listingStatus}
+              onChange={(v: string) => set('listingStatus', v)}
+              options={listingStatusOptions}
+              hint="Drafts are hidden from customers and excluded from public search."
+            />
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {!dealerMode && (
+              <Toggle
+                label="Featured"
+                description="Promote this vehicle in featured sections."
+                checked={formData.isFeatured}
+                onChange={(v) => set('isFeatured', v)}
+                star
+              />
+            )}
+            <Toggle
+              label="Certified"
+              description="Show the certified badge on the storefront."
+              checked={formData.isCertified}
+              onChange={(v) => set('isCertified', v)}
+            />
+            <Toggle
+              label="Finance available"
+              description="Let customers apply for finance on this vehicle."
+              checked={formData.availableForFinance}
+              onChange={(v) => set('availableForFinance', v)}
+            />
+          </div>
+          {dealerMode && (
+            <p className="mt-3 rounded-lg bg-[hsl(var(--admin-surface-muted))] p-3 text-xs leading-5 text-[hsl(var(--color-content-muted))]">
+              New listings go live as Available under your dealership. Featured placement is managed by admins.
+            </p>
+          )}
+        </FormSection>
+
+        {showPremium && (
+          <PremiumVehicleSection
+            value={premium}
+            onChange={setPremium}
+            tags={premiumTagOptions ?? []}
+            storedFeaturedUntil={storedPremium?.featuredUntil}
+          />
+        )}
+
+        <FormSection
+          id={`${formId}-images`}
+          icon={ImagePlus}
+          title="Images & media"
+          description="The first image is used as the listing thumbnail. Drag files in or paste a URL."
+          action={
+            <span className="shrink-0 rounded-full bg-[hsl(var(--admin-surface-muted))] px-2.5 py-1 text-xs font-semibold tabular-nums text-[hsl(var(--color-content-muted))]">
+              {formData.images.length} / {MAX_IMAGES}
+            </span>
+          }
+        >
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => {
+                setImageUrl(e.target.value);
+                if (error) setError('');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addImageUrl();
+                }
+              }}
+              placeholder="https://example.com/car-image.jpg"
+              className={inputCls + ' flex-1'}
+              aria-label="Image URL"
+            />
+            <button
+              type="button"
+              onClick={addImageUrl}
+              disabled={!imageUrl.trim()}
+              className="admin-btn admin-btn-secondary shrink-0"
+            >
+              <Upload size={16} aria-hidden="true" /> Add image
+            </button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="hidden"
+            onChange={(e) => void handleFiles(e.target.files)}
+            aria-label="Upload images from device"
+          />
           <div
             role="button"
             tabIndex={0}
             aria-label="Upload images: click to browse or drop files here"
-            onClick={() => { if (!isUploading) fileInputRef.current?.click(); }}
-            onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !isUploading) { e.preventDefault(); fileInputRef.current?.click(); } }}
-            onDragEnter={(e) => { e.preventDefault(); dragDepth.current++; setIsDragging(true); }}
+            onClick={() => {
+              if (!isUploading) fileInputRef.current?.click();
+            }}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && !isUploading) {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              dragDepth.current++;
+              setIsDragging(true);
+            }}
             onDragOver={(e) => e.preventDefault()}
-            onDragLeave={(e) => { e.preventDefault(); dragDepth.current = Math.max(0, dragDepth.current - 1); if (dragDepth.current === 0) setIsDragging(false); }}
-            onDrop={(e) => { e.preventDefault(); dragDepth.current = 0; setIsDragging(false); if (!isUploading) void handleFiles(e.dataTransfer.files); }}
-            className={'flex items-center gap-3 rounded-xl border-2 border-dashed px-4 py-4 text-sm transition-colors ' + (isDragging ? 'border-[#FFC700] bg-[#FFC700]/10 text-content' : 'border-border text-content-muted hover:border-[#FFC700]/60 hover:text-content') + (isUploading ? ' opacity-70 pointer-events-none' : ' cursor-pointer')}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              dragDepth.current = Math.max(0, dragDepth.current - 1);
+              if (dragDepth.current === 0) setIsDragging(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              dragDepth.current = 0;
+              setIsDragging(false);
+              if (!isUploading) void handleFiles(e.dataTransfer.files);
+            }}
+            className={
+              'flex items-center gap-3 rounded-xl border border-dashed px-4 py-4 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] ' +
+              (isDragging
+                ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary)/0.12)] text-[hsl(var(--color-content))]'
+                : 'border-[hsl(var(--color-line-hover))] bg-[hsl(var(--admin-surface-muted))] text-[hsl(var(--color-content-muted))] hover:border-[hsl(var(--color-primary))] hover:text-[hsl(var(--color-content))]') +
+              (isUploading ? ' pointer-events-none opacity-70' : ' cursor-pointer')
+            }
           >
-            {isUploading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <ImagePlus size={18} className="shrink-0" />}
-            <span className="font-semibold">{isUploading ? 'Uploading…' : isDragging ? 'Drop images to upload' : 'Upload from device — click or drag & drop'}</span>
+            {isUploading ? (
+              <Loader2 size={18} className="shrink-0 animate-spin" aria-hidden="true" />
+            ) : (
+              <ImagePlus size={18} className="shrink-0" aria-hidden="true" />
+            )}
+            <span className="font-semibold">
+              {isUploading
+                ? 'Uploading…'
+                : isDragging
+                  ? 'Drop images to upload'
+                  : 'Upload from device — click or drag & drop'}
+            </span>
           </div>
-          {/* Per-file progress while sharp compresses each upload server-side. */}
+
           {uploadProgress && (
             <div className="mt-3" role="status" aria-live="polite" aria-label="Upload progress">
-              <div className="flex items-center justify-between text-xs text-content-muted mb-1.5">
-                <span className="truncate">Uploading {uploadProgress.done + 1} of {uploadProgress.total}: {uploadProgress.current}</span>
-                <span className="ml-2 shrink-0 font-semibold">{Math.round((uploadProgress.done / uploadProgress.total) * 100)}%</span>
+              <div className="mb-1.5 flex items-center justify-between gap-2 text-xs text-[hsl(var(--color-content-muted))]">
+                <span className="truncate">
+                  Uploading {uploadProgress.done + 1} of {uploadProgress.total}: {uploadProgress.current}
+                </span>
+                <span className="shrink-0 font-semibold">
+                  {Math.round((uploadProgress.done / uploadProgress.total) * 100)}%
+                </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuemin={0} aria-valuemax={uploadProgress.total} aria-valuenow={uploadProgress.done}>
-                <div className="h-full rounded-full bg-gradient-to-r from-[#FFC700] to-yellow-500 transition-all duration-300" style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }} />
+              <div
+                className="h-2 w-full overflow-hidden rounded-full bg-[hsl(var(--admin-surface-muted))]"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={uploadProgress.total}
+                aria-valuenow={uploadProgress.done}
+              >
+                <div
+                  className="h-full rounded-full bg-[hsl(var(--color-primary))] transition-all duration-300 motion-reduce:transition-none"
+                  style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
+                />
               </div>
             </div>
           )}
-          <p className="text-xs text-content-muted mt-2">jpg, png or webp up to 10 MB — compressed automatically. Or paste an image URL above.</p>
-          {uploadError && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle size={13} /> {uploadError}</p>}
-        </div>
-        {formData.images.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {formData.images.map((url, i) => (
-              <div key={i} className="relative group" data-vehicle-image={url}>
-                <div className="relative aspect-[4/3] bg-surface rounded-lg overflow-hidden border border-border">
-                  {url.startsWith('data:') || url.startsWith('http') || url.startsWith('/') ? (
-                    <Image
-                      src={url}
-                      alt={'Vehicle ' + (i + 1)}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover"
-                      // Local /uploads + data URIs skip the optimizer (no
-                      // remotePattern covers them); remote https URLs use it.
-                      unoptimized={url.startsWith('/') || url.startsWith('data:')}
-                    />
-                  ) : <div className="w-full h-full flex items-center justify-center text-xs text-content-muted">Preview</div>}
-                </div>
-                {i === 0 && <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#FFC700] text-[#15130a] text-xs font-bold rounded">Primary</span>}
-                <div className="absolute top-2 right-2 flex gap-1">
-                  {i > 0 && <button type="button" onClick={() => moveImage(i, 'up')} className="p-1.5 bg-white/90 rounded shadow text-xs font-bold">↑</button>}
-                  {i < formData.images.length - 1 && <button type="button" onClick={() => moveImage(i, 'down')} className="p-1.5 bg-white/90 rounded shadow text-xs font-bold">↓</button>}
-                  <button type="button" onClick={() => removeImage(i)} className="p-1.5 bg-red-500 text-white rounded shadow text-xs font-bold">×</button>
-                </div>
-              </div>
-            ))}
-          </div>
-) : (
-          <div className="text-center py-10 border-2 border-dashed border-border rounded-xl"><Upload size={28} className="mx-auto text-content-muted mb-2" /><p className="text-sm text-content-muted">No images added yet</p></div>
-        )}
-      </section>
+          <p className="form-hint">
+            JPG, PNG or WebP up to 10 MB — compressed automatically. Or paste an image URL above.
+          </p>
+          {uploadError && (
+            <p className="form-error" role="alert">
+              <AlertCircle size={13} aria-hidden="true" /> {uploadError}
+            </p>
+          )}
 
-      {/* Vehicle Videos */}
-      <section>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-content-muted mb-4">Vehicle Videos <span className="text-slate-500">(Optional)</span></h3>
-        <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className={labelCls}>Video URL <span className="text-slate-500">(MP4, WebM)</span></label>
-              <input type="url" value={formData.videoUrl || ''} onChange={(e) => setFormData(pv => ({ ...pv, videoUrl: e.target.value }))} placeholder="https://example.com/video.mp4" className={inputCls} />
+          {formData.images.length > 0 ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {formData.images.map((url, i) => (
+                <div key={`${url}-${i}`} className="group relative" data-vehicle-image={url}>
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-[hsl(var(--color-line))] bg-[hsl(var(--admin-surface-muted))]">
+                    {url.startsWith('data:') || url.startsWith('http') || url.startsWith('/') ? (
+                      <Image
+                        src={url}
+                        alt={`Vehicle image ${i + 1}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover"
+                        unoptimized={url.startsWith('/') || url.startsWith('data:')}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs text-[hsl(var(--color-content-muted))]">
+                        Preview unavailable
+                      </div>
+                    )}
+                  </div>
+                  {i === 0 && (
+                    <span className="absolute left-2 top-2 rounded-md bg-[hsl(var(--color-primary))] px-2 py-0.5 text-[11px] font-bold text-[hsl(var(--color-primary-foreground))]">
+                      Primary
+                    </span>
+                  )}
+                  <div className="absolute right-2 top-2 flex gap-1">
+                    {i > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => moveImage(i, 'up')}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 text-sm font-bold text-slate-800 shadow-sm hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]"
+                        aria-label={`Move image ${i + 1} earlier`}
+                      >
+                        ↑
+                      </button>
+                    )}
+                    {i < formData.images.length - 1 && (
+                      <button
+                        type="button"
+                        onClick={() => moveImage(i, 'down')}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 text-sm font-bold text-slate-800 shadow-sm hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]"
+                        aria-label={`Move image ${i + 1} later`}
+                      >
+                        ↓
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))]"
+                      aria-label={`Remove image ${i + 1}`}
+                    >
+                      <X size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <label className={labelCls}>Thumbnail URL (Optional)</label>
-              <input type="url" value={formData.videoThumbnail || ''} onChange={(e) => setFormData(pv => ({ ...pv, videoThumbnail: e.target.value }))} placeholder="https://example.com/thumb.jpg" className={inputCls} />
+          ) : (
+            <div className="mt-4 rounded-xl border border-dashed border-[hsl(var(--color-line-hover))] px-4 py-10 text-center">
+              <Upload size={26} className="mx-auto text-[hsl(var(--color-content-faint))]" aria-hidden="true" />
+              <p className="mt-2 text-sm font-semibold text-[hsl(var(--color-content))]">
+                No images added yet
+              </p>
+              <p className="mt-1 text-xs text-[hsl(var(--color-content-muted))]">
+                At least one image is required before the listing can be saved.
+              </p>
             </div>
-            <div>
-              <label className={labelCls}>Video Title (Optional)</label>
-              <input type="text" value={formData.videoTitle || ''} onChange={(e) => setFormData(pv => ({ ...pv, videoTitle: e.target.value }))} placeholder="e.g., Interior Walkthrough" className={inputCls} />
-            </div>
+          )}
+        </FormSection>
+
+        <FormSection
+          id={`${formId}-videos`}
+          icon={Video}
+          title="Vehicle video"
+          description={`Optional walkthrough video. ${VIDEO_FORMAT_TEXT} files are supported.`}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Video URL"
+              type="url"
+              value={formData.videoUrl || ''}
+              onChange={(v: string) => setFormData((pv) => ({ ...pv, videoUrl: v }))}
+              placeholder="https://example.com/video.mp4"
+            />
+            <Field
+              label="Thumbnail URL"
+              type="url"
+              value={formData.videoThumbnail || ''}
+              onChange={(v: string) => setFormData((pv) => ({ ...pv, videoThumbnail: v }))}
+              placeholder="https://example.com/thumb.jpg"
+            />
+            <Field
+              label="Video title"
+              value={formData.videoTitle || ''}
+              onChange={(v: string) => setFormData((pv) => ({ ...pv, videoTitle: v }))}
+              placeholder="e.g., Interior walkthrough"
+            />
           </div>
+        </FormSection>
+
+        <div className="admin-card sticky bottom-0 z-30 flex items-center justify-between gap-3 rounded-b-none p-3 shadow-[var(--admin-shadow-hover)] sm:bottom-3 sm:rounded-b-2xl">
+          <p className="hidden text-xs leading-5 text-[hsl(var(--color-content-muted))] sm:block">
+            Fields marked <span className="font-semibold text-[hsl(var(--color-error))]">*</span> are required.
+          </p>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            {onCancel && (
+              <button type="button" onClick={discard} className="admin-btn admin-btn-secondary flex-1 sm:flex-none">
+                Cancel
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting || isLoadingRefs}
+              className="admin-btn admin-btn-primary min-w-0 flex-1 disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-40 sm:flex-none"
+            >
+              {isSubmitting && <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+              {isSubmitting
+                ? editId
+                  ? 'Saving…'
+                  : 'Creating…'
+                : editId
+                  ? 'Save changes'
+                  : formData.status === 'DRAFT'
+                    ? 'Save as draft'
+                    : 'Create vehicle'}
+            </button>
           </div>
-        </section>
-        {onCancel && (
-          <button type="button" onClick={discard} className="px-6 py-2.5 border border-border rounded-xl text-sm font-semibold text-content hover:bg-surface transition-colors">
-            Cancel
-          </button>
-        )}
-        <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 bg-[#FFC700] text-[#15130a] rounded-xl text-sm font-semibold hover:brightness-110 disabled:opacity-50 flex items-center gap-2">
-          {isSubmitting ? (editId ? 'Saving...' : 'Creating...') : editId ? 'Save Changes' : formData.status === 'DRAFT' ? 'Save as Draft' : 'Create Vehicle'}
-        </button>
-    </form>
+        </div>
+      </form>
 
       {/* Confirmation modal for un-recoverable image deletions. */}
       {pendingDelete && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-asset-title"
+          aria-describedby="delete-asset-description"
           onClick={() => !isDeleting && setPendingDelete(null)}
         >
-          <div className="bg-card rounded-2xl border border-line p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start gap-3 mb-4">
-              <div className="p-2.5 bg-red-500/10 rounded-full"><Trash2 size={20} className="text-red-400" /></div>
+          <div
+            className="admin-card w-full max-w-md bg-[hsl(var(--admin-surface))] p-5 shadow-2xl sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-700">
+                <Trash2 size={19} aria-hidden="true" />
+              </div>
               <div>
-                <h3 id="delete-asset-title" className="text-lg font-bold text-content">Are you sure you want to delete this asset?</h3>
-                <p className="text-sm text-content-muted mt-1">
-                  This permanently deletes the image file from storage (disk or Cloudinary) and removes it from the vehicle&apos;s gallery. This action cannot be undone.
+                <h3 id="delete-asset-title" className="text-lg font-bold tracking-tight text-[hsl(var(--color-content))]">
+                  Delete this image?
+                </h3>
+                <p id="delete-asset-description" className="mt-1 text-sm leading-6 text-[hsl(var(--color-content-muted))]">
+                  This permanently deletes the file from storage and removes it
+                  from the vehicle&apos;s gallery. This action cannot be undone.
                 </p>
+                {pendingDelete.url && (
+                  <p className="mt-2 break-all rounded-lg bg-[hsl(var(--admin-surface-muted))] px-2.5 py-1.5 text-[11px] text-[hsl(var(--color-content-faint))]">
+                    {pendingDelete.url}
+                  </p>
+                )}
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button type="button" onClick={() => setPendingDelete(null)} disabled={isDeleting} className="px-5 py-2.5 border border-border rounded-xl text-sm font-semibold text-content hover:bg-surface disabled:opacity-50">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={isDeleting}
+                className="admin-btn admin-btn-secondary"
+              >
                 Cancel
               </button>
-              <button type="button" onClick={() => void confirmRemoveImage()} disabled={isDeleting} className="px-5 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 disabled:opacity-50 flex items-center gap-2">
-                {isDeleting && <Loader2 size={15} className="animate-spin" />} Delete Asset
+              <button
+                type="button"
+                onClick={() => void confirmRemoveImage()}
+                disabled={isDeleting}
+                className="admin-btn inline-flex bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeleting && <Loader2 size={15} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+                Delete image
               </button>
             </div>
           </div>
         </div>
       )}
-  </div>
-);
+    </div>
+  );
 }

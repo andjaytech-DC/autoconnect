@@ -24,7 +24,7 @@ export default function DealerCard({ dealer }: DealerCardProps) {
           <h3 className="font-bold text-content text-lg leading-snug">
             <Link
               href={`/dealers/${dealer.id}`}
-              className="hover:text-[#FFC700] transition-colors"
+              className="hover:text-primary-strong transition-colors"
             >
               {dealer.name}
             </Link>
@@ -34,8 +34,8 @@ export default function DealerCard({ dealer }: DealerCardProps) {
             supply reviews yet; rendering "0.0" would show a placeholder as a
             real score. */}
         {dealer.reviewCount > 0 && (
-          <span className="inline-flex items-center gap-1 shrink-0 bg-emerald-500/10 text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-md">
-            <Star size={12} className="fill-[#FFC700]" aria-hidden="true" />
+          <span className="inline-flex items-center gap-1 shrink-0 bg-success/10 text-success text-xs font-bold px-2.5 py-1 rounded-md">
+            <Star size={12} className="fill-primary" aria-hidden="true" />
             {dealer.rating.toFixed(1)}
           </span>
         )}
@@ -51,13 +51,13 @@ export default function DealerCard({ dealer }: DealerCardProps) {
           {dealer.phone ? (
             <a
               href={`tel:${dealer.phone.replace(/\s/g, "")}`}
-              className="hover:text-[#FFC700] transition-colors"
+              className="hover:text-primary-strong transition-colors"
             >
               {dealer.phone}
             </a>
           ) : (
             // Contact details are released only to a signed-in session.
-            <Link href="/login" className="underline hover:text-[#FFC700]">
+            <Link href="/login" className="inline-flex min-h-6 items-center underline hover:text-primary-strong">
               Sign in to view phone
             </Link>
           )}
@@ -71,14 +71,14 @@ export default function DealerCard({ dealer }: DealerCardProps) {
       <div className="mt-auto grid grid-cols-2 gap-2">
         <Link
           href={`/dealers/${dealer.id}`}
-          className="inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FFC700] text-[#15130a] font-semibold hover:brightness-110 transition-colors"
+          className="inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:brightness-110 transition-colors"
         >
           <ArrowUpRight size={16} aria-hidden="true" />
           Details
         </Link>
         <Link
           href="/cars"
-          className="inline-flex items-center justify-center gap-2 py-3 rounded-xl border border-line font-semibold text-content hover:border-[#FFC700]/60 hover:text-[#FFC700] transition-colors"
+          className="inline-flex items-center justify-center gap-2 py-3 rounded-xl border border-line font-semibold text-content hover:border-primary/60 hover:text-primary-strong transition-colors"
         >
           <Car size={16} aria-hidden="true" />
           Inventory

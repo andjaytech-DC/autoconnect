@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
 
 import { readSessionCookie, verifySession } from "@/app/lib/auth";
-import { newId, updateDb } from "@/app/server/db";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
+import { submitFinanceApplication } from "@/app/lib/finance-bff";
 
 export const runtime = "nodejs";
 
 /**
  * POST /api/loan/new — submit a car-loan application.
  *
- * Validates the request, records it as a FINANCE order (status PENDING) on the
- * user's account, and returns a reference. No fake approval is granted; an
- * actual lender decision happens on the NestJS/underwriting side.
+ * Validates the request and files it as a finance application in NestJS, on the
+ * signed-in customer's account. No approval is granted here; the lender decision
+ * happens on the backend.
  */
 export async function POST(request: Request) {
   const session = await verifySession(readSessionCookie(request));
-  if (!session) {
+  if (!session?.token) {
     return NextResponse.json({ error: "Please sign in to apply" }, { status: 401 });
   }
 
@@ -52,21 +53,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const applicationId = newId("loan");
-  await updateDb((db) => {
-    db.orders.push({
-      id: applicationId,
-      userId: session.id,
-      carId,
-      type: "FINANCE",
-      amount,
-      status: "PENDING",
-      createdAt: new Date().toISOString(),
+  try {
+    const application = await submitFinanceApplication(session.token, {
+      vehicleId: carId,
+      loanAmount: amount,
+      tenureMonths: tenureYears * 12,
+      ...(monthlyIncome > 0 ? { monthlyIncome } : {}),
     });
-  });
-
-  return NextResponse.json(
-    { applicationId, status: "PENDING", message: "Loan application received. A partner bank will review it." },
-    { status: 201 },
-  );
+    return NextResponse.json(
+      {
+        applicationId: application.referenceNo,
+        status: application.status,
+        message: "Loan application received. A partner bank will review it.",
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    return backendErrorResponse(err);
+  }
 }

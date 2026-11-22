@@ -2,12 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { readSessionCookie, verifySession } from "@/app/lib/auth";
-import { backendFetch, isBackendUnreachable, BackendError } from "@/app/lib/backend";
-import {
-  addToWishlist,
-  listWishlist,
-  removeFromWishlist,
-} from "@/app/server/wishlist";
+import { backendFetch, BackendError } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
 
 export const runtime = "nodejs";
 
@@ -21,54 +17,37 @@ interface BackendWishlistItem {
 
 /** Map a backend wishlist row to the UI item shape ({ id, carId, addedAt }). */
 function mapItem(item: BackendWishlistItem) {
-  return {
-    id: String(item.id),
-    carId: item.vehicleId,
-    addedAt: item.createdAt,
-  };
+  return { id: String(item.id), carId: item.vehicleId, addedAt: item.createdAt };
 }
 
-async function userId(request: Request): Promise<{
-  id: string;
-  token?: string;
-} | null> {
+/** The wishlist is per-account and lives in NestJS; there is no local copy. */
+type Who = { response: Response } | { token: string };
+
+async function authenticate(request: Request): Promise<Who> {
   const session = await verifySession(readSessionCookie(request));
-  if (!session) return null;
-  return { id: session.id, token: session.token };
+  if (!session) {
+    return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
+  }
+  if (!session.token) {
+    return { response: NextResponse.json({ error: "Please sign in again" }, { status: 401 }) };
+  }
+  return { token: session.token };
 }
 
 export async function GET(request: Request) {
-  const user = await userId(request);
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  const who = await authenticate(request);
+  if ("response" in who) return who.response;
+  try {
+    const items = await backendFetch<BackendWishlistItem[]>("/wishlist", { token: who.token });
+    return NextResponse.json({ items: (items ?? []).map(mapItem), source: "backend" });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
-
-  // 1) NestJS backend (authoritative)
-  if (user.token) {
-    try {
-      const items = await backendFetch<BackendWishlistItem[]>("/wishlist", {
-        token: user.token,
-      });
-      return NextResponse.json({
-        items: (items ?? []).map(mapItem),
-        source: "backend",
-      });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
-    }
-  }
-
-  // 2) Local fallback
-  return NextResponse.json({ items: await listWishlist(user.id), source: "local" });
 }
 
 export async function POST(request: Request) {
-  const user = await userId(request);
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const who = await authenticate(request);
+  if ("response" in who) return who.response;
 
   let body: unknown;
   try {
@@ -81,63 +60,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A valid carId is required" }, { status: 400 });
   }
 
-  // 1) NestJS backend (authoritative)
-  if (user.token) {
-    try {
-      const item = await backendFetch<BackendWishlistItem>("/wishlist", {
-        method: "POST",
-        token: user.token,
-        body: { vehicleId: parsed.data.carId },
-      });
-      return NextResponse.json(
-        { item: mapItem(item), source: "backend" },
-        { status: 201 },
-      );
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        if (err.status === 400) {
-          // Already in wishlist — treat as success (idempotent add).
-          return NextResponse.json({ alreadySaved: true, source: "backend" });
-        }
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
+  try {
+    const item = await backendFetch<BackendWishlistItem>("/wishlist", {
+      method: "POST",
+      token: who.token,
+      body: { vehicleId: parsed.data.carId },
+    });
+    return NextResponse.json({ item: mapItem(item), source: "backend" }, { status: 201 });
+  } catch (err) {
+    // 409 is NestJS saying it is already saved — adding twice is a success.
+    // Every other refusal (unknown car, a dealer's own car, ...) is reported.
+    if (err instanceof BackendError && err.status === 409) {
+      return NextResponse.json({ alreadySaved: true, source: "backend" });
     }
+    return backendErrorResponse(err);
   }
-
-  // 2) Local fallback
-  const item = await addToWishlist(user.id, parsed.data.carId);
-  return NextResponse.json(
-    item ? { item, source: "local" } : { alreadySaved: true, source: "local" },
-    { status: item ? 201 : 200 },
-  );
 }
 
 export async function DELETE(request: Request) {
-  const user = await userId(request);
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const who = await authenticate(request);
+  if ("response" in who) return who.response;
+
   const carId = Number(new URL(request.url).searchParams.get("carId"));
   if (!Number.isInteger(carId) || carId <= 0) {
     return NextResponse.json({ error: "A valid carId is required" }, { status: 400 });
   }
 
-  // 1) NestJS backend (authoritative)
-  if (user.token) {
-    try {
-      await backendFetch(`/wishlist/vehicle/${carId}`, {
-        method: "DELETE",
-        token: user.token,
-      });
-      return NextResponse.json({ removed: true, source: "backend" });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
+  try {
+    await backendFetch(`/wishlist/vehicle/${carId}`, { method: "DELETE", token: who.token });
+    return NextResponse.json({ removed: true, source: "backend" });
+  } catch (err) {
+    // Removing something that is not saved leaves the wishlist as asked.
+    if (err instanceof BackendError && err.status === 404) {
+      return NextResponse.json({ removed: false, source: "backend" });
     }
+    return backendErrorResponse(err);
   }
-
-  // 2) Local fallback
-  const removed = await removeFromWishlist(user.id, carId);
-  return NextResponse.json({ removed, source: "local" });
 }

@@ -191,8 +191,8 @@ export default function RegisterForm() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[hsl(var(--color-content-muted))] hover:text-[hsl(var(--color-content))] focus:outline-none z-10"
-          >
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-[hsl(var(--color-content-muted))] hover:text-[hsl(var(--color-content))] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] z-10"
+          aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
@@ -211,8 +211,8 @@ export default function RegisterForm() {
           <button
             type="button"
             onClick={() => setShowConfirm(!showConfirm)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[hsl(var(--color-content-muted))] hover:text-[hsl(var(--color-content))] focus:outline-none z-10"
-          >
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-[hsl(var(--color-content-muted))] hover:text-[hsl(var(--color-content))] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-focus))] z-10"
+          aria-label={showConfirm ? "Hide password confirmation" : "Show password confirmation"} aria-pressed={showConfirm}>
             {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>

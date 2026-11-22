@@ -1,100 +1,38 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/app/server/prisma";
+import { backendFetch } from "@/app/lib/backend";
+import { backendErrorResponse } from "@/app/lib/bff-errors";
 import { requireAdminSession } from "@/app/server/authz";
-import { backendFetch, isBackendUnreachable, BackendError } from "@/app/lib/backend";
 
 export const runtime = "nodejs";
 
 /**
- * GET /api/admin/lookups
- *
- * Admin-only: all brands, categories and dealers for the Add New Car form
- * selectors. Backed by the NestJS API when reachable.
+ * GET /api/admin/lookups — admin-only brands, categories and dealers for the
+ * vehicle form selectors. NestJS owns the lists; rejected dealers are left out.
  */
 export async function GET(request: Request) {
   const auth = await requireAdminSession(request);
   if (!auth.ok) return auth.response;
-  const session = auth.session;
-
-  // 1) NestJS backend (authoritative)
-  if (session.token) {
-    try {
-      const [brands, categories, dealers] = await Promise.all([
-        backendFetch<{ id: number; name: string; logo?: string | null }[]>(
-          "/vehicles/popular-brands",
-          { token: session.token },
-        ).catch(() => null),
-        backendFetch<{ id: number; name: string; slug: string }[]>(
-          "/categories",
-          { token: session.token },
-        ).catch(() => null),
-        backendFetch<
-          { id: number; businessName: string; city: string; state: string }[]
-        >("/dealers", { token: session.token }).catch(() => null),
-      ]);
-
-      return NextResponse.json({
-        brands: (brands ?? []).map((b) => ({
-          id: b.id,
-          name: b.name,
-          country: null,
-        })),
-        categories: categories ?? [],
-        dealers: (dealers ?? []).map((d) => ({
-          id: d.id,
-          name: d.businessName,
-          city: d.city,
-          state: d.state,
-        })),
-        source: "backend",
-      });
-    } catch (err) {
-      if (!isBackendUnreachable(err) && err instanceof BackendError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
-    }
+  if (!auth.session.token) {
+    return NextResponse.json({ error: "Please sign in again" }, { status: 401 });
   }
 
-  // 2) Local fallback
   try {
-    const [brands, categories, dealers] = await Promise.all([
-      prisma.brand.findMany({
-        where: { isActive: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.category.findMany({
-        where: { isActive: true },
-        orderBy: { name: "asc" },
-      }),
-// Dealer has no isActive flag; `status` carries the lifecycle instead.
-        prisma.dealer.findMany({
-          where: { status: { not: "REJECTED" } },
-          orderBy: { businessName: "asc" },
-        }),
-    ]);
+    const data = await backendFetch<{
+      brands?: { id: number; name: string }[];
+      categories?: { id: number; name: string; slug: string }[];
+      dealers?: { id: number; businessName: string; city: string; state: string; status?: string }[];
+    }>("/admin/lookups", { token: auth.session.token });
 
     return NextResponse.json({
-      brands: brands.map((b) => ({
-        id: b.id,
-        name: b.name,
-        country: b.country,
-      })),
-      categories: categories.map((c) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-      })),
-      dealers: dealers.map((d) => ({
-        id: d.id,
-        name: d.businessName,
-        city: d.city,
-        state: d.state,
-      })),
-      source: "local",
+      brands: (data?.brands ?? []).map((b) => ({ id: b.id, name: b.name, country: null })),
+      categories: data?.categories ?? [],
+      dealers: (data?.dealers ?? [])
+        .filter((d) => d.status !== "REJECTED")
+        .map((d) => ({ id: d.id, name: d.businessName, city: d.city, state: d.state, status: d.status })),
+      source: "backend",
     });
-  } catch (error) {
-    console.error("Admin lookups API error:", error);
-    return NextResponse.json({ error: "Unable to fetch lookups" }, { status: 500 });
+  } catch (err) {
+    return backendErrorResponse(err);
   }
 }

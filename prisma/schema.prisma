@@ -122,6 +122,7 @@ model User {
   warrantyPurchases WarrantyPurchase[]
   returnRequests ReturnRequest[]
   testDrives TestDrive[]
+  serviceBookings ServiceBooking[]
 }
 
 model Permission {
@@ -790,6 +791,10 @@ model ServiceProvider {
 model ServiceBooking {
   id Int @id @default(autoincrement())
   providerId Int
+  // Verified owner (from the caller's token). Mirrors the backend schema, which
+  // owns the migration (20261117000000_add_service_booking_owner).
+  userId Int?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   customerName String
   customerPhone String
   service String
@@ -801,6 +806,7 @@ model ServiceBooking {
   updatedAt DateTime @updatedAt
   @@index([providerId])
   @@index([status])
+  @@index([userId])
 }
 
 model MarketplaceProduct {

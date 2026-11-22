@@ -87,7 +87,11 @@ export async function nest<T = unknown>(path: string, options: NestOptions = {})
     }
   }
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  const url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}${suffix}`;
+  // In the browser, go through the same-origin proxy (see rewrites() in
+  // next.config.js) so the call works from any host the page is opened on.
+  // Server-side rendering keeps calling the configured NestJS address.
+  const base = typeof window !== "undefined" ? "/nest-api" : API_BASE;
+  const url = `${base}${path.startsWith("/") ? path : `/${path}`}${suffix}`;
 
   const shareKey = coalesceKey(path, options);
   const existing = shareKey ? inFlight.get(shareKey) : undefined;

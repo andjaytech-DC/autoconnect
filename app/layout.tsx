@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 import Navbar from "@/app/components/navbar";
@@ -15,10 +15,19 @@ const geist = Geist({
   display: "swap",
 });
 
+/* Classic high-contrast serif for headings and display numerals. Variable font,
+   so no weight list is needed. Body and UI text stay on Geist. */
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+  style: ["normal", "italic"],
+});
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#FAF9F6",
+  themeColor: "#0A1128",
   colorScheme: "light",
 };
 
@@ -38,14 +47,20 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={geist.variable}
+      className={`${geist.variable} ${playfair.variable}`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-[hsl(var(--color-bg))] text-[hsl(var(--color-content))] antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[hsl(var(--color-content))] focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+        >
+          Skip to main content
+        </a>
         <div className="flex min-h-screen flex-col">
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
           <Footer rating={rating} />
         </div>
       </body>

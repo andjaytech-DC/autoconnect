@@ -121,14 +121,14 @@ export default async function DealerPage({
 
   if (result === "error") {
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] font-sans text-[hsl(var(--color-content))]">
-        <main className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12 text-center">
+      <div className="min-h-screen bg-[hsl(var(--color-bg))] font-sans text-[hsl(var(--color-content))]">
+        <div className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12 text-center">
           <h1 className="text-xl font-bold text-content">Unable to load dealer</h1>
           <p className="mt-2 text-sm text-content-muted">Please check your connection and retry.</p>
           <Link href="/dealers" className="mt-6 inline-block rounded-xl bg-[hsl(var(--color-primary))] px-5 py-3 text-sm font-bold text-[hsl(var(--color-primary-foreground))] hover:brightness-110">
             Back to dealers
           </Link>
-        </main>
+        </div>
       </div>
     );
   }
@@ -168,7 +168,7 @@ export default async function DealerPage({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col font-sans text-[hsl(var(--color-content))]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] flex flex-col font-sans text-[hsl(var(--color-content))]">
 
       {/* =========================================================
           HERO
@@ -527,10 +527,10 @@ export default async function DealerPage({
             {/* Rating — clamped to zero by the mapper, so only render it when
                 there are actually reviews behind the number. */}
             {dealer.reviewCount > 0 ? (
-              <p className="mt-4 inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-bold px-3 py-1.5 rounded-full">
+              <p className="mt-4 inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-700 text-sm font-bold px-3 py-1.5 rounded-full">
                 <Star
                   size={14}
-                  className="fill-[hsl(var(--color-primary))] text-[hsl(var(--color-primary))]"
+                  className="fill-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-strong))]"
                   aria-hidden="true"
                 />
 

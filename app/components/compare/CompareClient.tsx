@@ -105,7 +105,7 @@ export default function CompareClient() {
     <div>
       <div className="flex gap-2 mb-6">
         <input value={picker} onChange={(e) => setPicker(e.target.value)} placeholder="Enter vehicle ID to compare" className="flex-1 px-3 py-2.5 border border-border rounded-lg text-sm bg-card text-content" />
-        <button onClick={add} disabled={ids.length >= 4} className="px-4 py-2.5 bg-[#FFC700] text-[#15130a] rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 flex items-center gap-2"><Plus size={16} /> Add</button>
+        <button onClick={add} disabled={ids.length >= 4} className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 flex items-center gap-2"><Plus size={16} /> Add</button>
       </div>
 
       {loading && (
@@ -116,7 +116,7 @@ export default function CompareClient() {
       )}
 
       {error && !loading && (
-        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+        <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
           {error}
         </div>
       )}

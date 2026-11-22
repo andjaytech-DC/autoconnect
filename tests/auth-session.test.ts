@@ -11,7 +11,6 @@ import {
 } from "../app/lib/auth";
 import { resetRateLimits } from "../app/lib/rate-limit";
 import { resetLoginThrottle } from "../app/server/login-throttle";
-import { findUserByEmail } from "../app/server/users";
 
 /**
  * Sprint 4 — authentication & public API review.
@@ -23,9 +22,11 @@ import { findUserByEmail } from "../app/server/users";
  *     it);
  *   • `isActive` is a real gate — a deactivated account cannot log in and a
  *     deactivated profile coalesces to 401;
- *   • registration in production requires the backend (local fallback is opt-in
- *     only), and a backend *rejection* is always final — never overridden by a
- *     local row created behind its back;
+ *   • NestJS is the ONLY identity store: when it is down, sign-in and
+ *     registration answer 503 (never a local fallback), and a backend
+ *     *rejection* is always final;
+ *   • the register payload matches the backend contract (no `role` field —
+ *     the real RegisterDto rejects it with 400);
  *   • logout clears both cookies.
  *
  * The route modules capture `NESTJS_API_URL` at import time, so they are loaded
@@ -41,6 +42,10 @@ interface BackendState {
   inactiveProfile: boolean;
   /** Status the fake backend answers for /api/auth/register (201 = accept). */
   registerStatus: number;
+  /** Status the fake backend answers for /api/auth/login (200 = normal flow). */
+  loginStatus: number;
+  /** Last body POSTed to /api/auth/register, for contract assertions. */
+  lastRegisterBody: Record<string, unknown> | null;
 }
 
 async function startFakeBackend(state: BackendState) {
@@ -70,6 +75,10 @@ async function startFakeBackend(state: BackendState) {
       };
 
       if (req.method === "POST" && url.pathname === "/api/auth/login") {
+        if (state.loginStatus !== 200) {
+          send({ message: "fake login failure" }, state.loginStatus);
+          return;
+        }
         const { email } = readJson();
         const user = {
           id: 42,
@@ -90,6 +99,14 @@ async function startFakeBackend(state: BackendState) {
       }
 
       if (req.method === "POST" && url.pathname === "/api/auth/register") {
+        const registerBody = readJson();
+        state.lastRegisterBody = registerBody;
+        // Mirrors the real RegisterDto: ValidationPipe runs with
+        // forbidNonWhitelisted, so any `role` property is a 400.
+        if ("role" in registerBody) {
+          send({ message: ["property role should not exist"] }, 400);
+          return;
+        }
         if (state.registerStatus !== 201) {
           send({ message: "Backend rejected the registration" }, state.registerStatus);
           return;
@@ -212,6 +229,8 @@ before(async () => {
     inactiveEmails: new Set(),
     inactiveProfile: false,
     registerStatus: 201,
+    loginStatus: 200,
+    lastRegisterBody: null,
   });
   process.env.NESTJS_API_URL = `http://127.0.0.1:${backend.port}/api`;
   ({ POST: loginPOST } = await import("../app/api/auth/login/route"));
@@ -227,17 +246,28 @@ after(async () => {
 
 beforeEach(() => {
   restoreEnv();
+  // Routes read NESTJS_API_URL per request, so it must be re-installed after
+  // restoreEnv() clears it.
+  process.env.NESTJS_API_URL = `http://127.0.0.1:${backend.port}/api`;
   resetRateLimits();
   resetLoginThrottle();
   backend.setDown(false);
   backend.state.inactiveEmails.clear();
   backend.state.inactiveProfile = false;
   backend.state.registerStatus = 201;
+  backend.state.loginStatus = 200;
+  backend.state.lastRegisterBody = null;
 });
 
 afterEach(() => {
   restoreEnv();
 });
+
+// restoreEnv() only restores what existed before the suite; keep the fake
+// backend URL for tests that follow a restore inside the same test body.
+function useFakeBackend(): void {
+  process.env.NESTJS_API_URL = `http://127.0.0.1:${backend.port}/api`;
+}
 
 test("login keeps the backend token in the HttpOnly cookie, out of the body", async () => {
   const response = await loginPOST(
@@ -318,47 +348,124 @@ test("a backend registration rejection is final — never overridden locally", a
     }),
   );
   assert.equal(response.status, 409, "the backend's 409 is passed through");
-  assert.equal(
-    await findUserByEmail("duplicate@example.test"),
-    undefined,
-    "no local account is created behind the backend's back",
-  );
 });
 
-test("production registration requires the backend; local fallback is opt-in", async () => {
-  setEnv({ NODE_ENV: "production", ALLOW_LOCAL_AUTH_FALLBACK: "false" });
+test("registration sends the backend contract: no `role` field", async () => {
+  const response = await registerPOST(
+    jsonRequest("https://example.test/api/auth/register", {
+      username: "contractcheck",
+      email: "contract@example.test",
+      name: "Contract Check",
+      password: "password-123",
+    }),
+  );
+  // The fake backend answers 400 to any body containing `role`, exactly like
+  // the real RegisterDto — so 201 proves the field is not sent.
+  assert.equal(response.status, 201);
+  assert.ok(backend.state.lastRegisterBody, "the backend received a body");
+  assert.ok(!("role" in backend.state.lastRegisterBody!), "role must not be sent");
+  assert.equal(backend.state.lastRegisterBody!.email, "contract@example.test");
+});
+
+test("registration with the backend down is 503 — there is no local fallback", async () => {
+  // The old opt-in flag must no longer matter.
+  setEnv({ NODE_ENV: "production", ALLOW_LOCAL_AUTH_FALLBACK: "true" });
+  useFakeBackend();
   backend.setDown(true);
 
-  // Unique per run: the local JSON store (.data/db.json) persists between runs,
-  // so a fixed email would start tripping 409 duplicates from the second run on.
-  const stamp = Date.now();
-  const firstEmail = `gate1-${stamp}@example.test`;
-  const secondEmail = `gate2-${stamp}@example.test`;
-
-  const refused = await registerPOST(
+  const response = await registerPOST(
     jsonRequest("https://example.test/api/auth/register", {
-      username: `gateone${stamp % 100000}`,
-      email: firstEmail,
-      name: "Gate One",
+      username: `down${Date.now() % 100000}`,
+      email: `down-${Date.now()}@example.test`,
+      name: "Down Case",
       password: "password-123",
     }),
   );
-  assert.equal(refused.status, 503, "backend down + none allowed → unavailable");
-  assert.equal(await findUserByEmail(firstEmail), undefined);
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.getSetCookie().length, 0, "no session is issued");
+});
 
-  setEnv({ ALLOW_LOCAL_AUTH_FALLBACK: "true" });
-  const allowed = await registerPOST(
-    jsonRequest("https://example.test/api/auth/register", {
-      username: `gatetwo${stamp % 100000}`,
-      email: secondEmail,
-      name: "Gate Two",
+test("login with the backend down is 503, issues no cookie and is not counted as a failed attempt", async () => {
+  backend.setDown(true);
+  for (let i = 0; i < 8; i++) {
+    const response = await loginPOST(
+      jsonRequest("https://example.test/api/auth/login", {
+        username: "outage@example.test",
+        password: "password-123",
+      }),
+    );
+    assert.equal(response.status, 503, `attempt ${i + 1}`);
+    assert.equal(response.headers.getSetCookie().length, 0);
+  }
+
+  // An outage must not have locked the account: once the backend is back the
+  // very next attempt succeeds rather than answering 429.
+  backend.setDown(false);
+  const recovered = await loginPOST(
+    jsonRequest("https://example.test/api/auth/login", {
+      username: "outage@example.test",
       password: "password-123",
     }),
   );
-  assert.equal(allowed.status, 201, "explicit opt-in re-enables the fallback");
-  assert.ok(await findUserByEmail(secondEmail), "local account created");
-  const body = (await allowed.json()) as { source?: string };
-  assert.equal(body.source, "local");
+  assert.equal(recovered.status, 200);
+});
+
+test("login passes the backend's 401 through as a counted failure", async () => {
+  backend.state.loginStatus = 401;
+  const response = await loginPOST(
+    jsonRequest("https://example.test/api/auth/login", {
+      username: "wrong@example.test",
+      password: "nope-nope-nope",
+    }),
+  );
+  assert.equal(response.status, 401);
+  assert.equal(((await response.json()) as { error: string }).error, "Invalid username or password");
+});
+
+test("login passes the backend's own 429 through with Retry-After", async () => {
+  backend.state.loginStatus = 429;
+  const response = await loginPOST(
+    jsonRequest("https://example.test/api/auth/login", {
+      username: "busy@example.test",
+      password: "password-123",
+    }),
+  );
+  assert.equal(response.status, 429);
+  assert.ok(response.headers.get("retry-after"));
+});
+
+test("/api/auth/me is 503 (not a local guess) when the backend is down", async () => {
+  backend.setDown(true);
+  const session = await signSession({
+    id: "42",
+    username: "profile@example.test",
+    email: "profile@example.test",
+    name: "Profile User",
+    role: "CUSTOMER",
+    token: TOKEN,
+  });
+  const response = await meGET(
+    new Request("https://example.test/api/auth/me", {
+      headers: { cookie: `${SESSION_COOKIE}=${session}` },
+    }),
+  );
+  assert.equal(response.status, 503);
+});
+
+test("/api/auth/me rejects a session that carries no backend token", async () => {
+  const session = await signSession({
+    id: "7",
+    username: "legacy@example.test",
+    email: "legacy@example.test",
+    name: "Legacy Local",
+    role: "CUSTOMER",
+  });
+  const response = await meGET(
+    new Request("https://example.test/api/auth/me", {
+      headers: { cookie: `${SESSION_COOKIE}=${session}` },
+    }),
+  );
+  assert.equal(response.status, 401);
 });
 
 test("/api/auth/me coalesces a deactivated backend profile into 401", async () => {
